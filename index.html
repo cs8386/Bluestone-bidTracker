@@ -752,7 +752,7 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
         <div class="fg">
           <label>Job Type</label>
           <select id="f_type" onchange="calc()">
-            <option value="Non-Crane">Non-Crane ($750/hr)</option>
+            <option value="Non-Crane">Non-Crane ($850/hr)</option>
             <option value="Crane">Crane ($1,250/hr)</option>
           </select>
         </div>
@@ -1185,7 +1185,7 @@ function calc(){
   const ci    = crew; // current crew index
 
   // Target $/hr based on job type
-  const thr = type === 'Crane' ? 1250 : 750;
+  const thr = type === 'Crane' ? 1250 : 850;
   const tmh = type === 'Crane' ? 250  : 150;
 
   // Man hours = total hours * crew size
