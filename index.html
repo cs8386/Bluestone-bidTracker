@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a2f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Bluestone Tree · Bid Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -52,6 +55,8 @@ body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   min-height: 100vh;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* subtle wood grain noise overlay */
@@ -68,7 +73,8 @@ header {
   position: sticky; top: 0; z-index: 50;
   background: var(--forest);
   padding: 0 28px;
-  height: 64px;
+  padding-top: max(0px, env(safe-area-inset-top, 0));
+  min-height: 64px;
   display: flex; align-items: center; justify-content: space-between;
   box-shadow: 0 2px 16px rgba(0,0,0,0.18);
   border-bottom: 3px solid var(--moss);
@@ -404,8 +410,9 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .modal-head h2 { font-family: 'Libre Baskerville', serif; font-size: 18px; font-weight: 700; color: var(--forest); }
 .x-btn {
   background: var(--cream); border: 1px solid var(--border-dk);
-  border-radius: 5px; color: var(--text-sub); font-size: 16px;
-  cursor: pointer; padding: 3px 9px; line-height: 1.4;
+  border-radius: 5px; color: var(--text-sub); font-size: 18px;
+  cursor: pointer; padding: 8px 14px; line-height: 1.4;
+  min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center;
   transition: all 0.15s;
 }
 .x-btn:hover { background: var(--cream-dk); color: var(--text); }
@@ -464,6 +471,35 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 .toast.ok  .toast-led { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
 .toast.err .toast-led { background: var(--red-lt); box-shadow: 0 0 8px var(--red-lt); }
 
+/* ── MOBILE CARDS (shown instead of table on small screens) ── */
+.job-cards { display: none; padding: 12px; }
+.job-card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: background 0.15s;
+}
+.job-card:last-child { margin-bottom: 0; }
+.job-card.r-well  { border-left: 4px solid var(--moss); }
+.job-card.r-under { border-left: 4px solid var(--amber); }
+.job-card.r-bad   { border-left: 4px solid var(--red-warn); }
+.job-card.r-bad, .job-card.r-under, .job-card.r-well { background: var(--white); }
+.job-card-top {
+  display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;
+  margin-bottom: 10px;
+}
+.job-card-id { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; color: var(--forest); }
+.job-card-client { font-weight: 600; color: var(--text); font-size: 14px; }
+.job-card-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; font-size: 12px; color: var(--text-sub); }
+.job-card-row { font-family: 'JetBrains Mono', monospace; }
+.job-card-bottom {
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.job-card-actions { display: flex; gap: 8px; }
+
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
   header, .tabs-bar, .footer-bar { padding-left:16px; padding-right:16px; }
@@ -471,6 +507,55 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   .stats-row { grid-template-columns: repeat(2,1fr); }
   .fgrid { grid-template-columns: 1fr 1fr; }
   .fg.s3 { grid-column: span 2; }
+}
+
+@media(max-width:768px){
+  header { padding: 0 12px; height: auto; min-height: 56px; flex-wrap: wrap; gap: 10px; padding-top: 10px; padding-bottom: 10px; }
+  .logo-area { flex: 1; min-width: 0; }
+  .logo-img { height: 32px; }
+  .logo-sub { font-size: 10px; }
+  .header-right { flex-wrap: wrap; gap: 8px; }
+  .header-right .btn { min-height: 40px; padding: 10px 14px; }
+  .sync-chip { padding: 6px 10px; font-size: 10px; }
+  .tabs-bar { padding: 0 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .crew-tab { padding: 10px 16px; font-size: 12px; flex-shrink: 0; }
+  .main, .footer-bar { margin-left: 12px; margin-right: 12px; }
+  .stats-row { grid-template-columns: 1fr; }
+  .stat { padding: 14px 16px; }
+  .stat-num { font-size: 22px; }
+  .chart-section { padding: 14px 16px; }
+  .chart-top { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .chart-canvas { height: 120px; }
+  .toolbar { padding: 10px 12px; gap: 8px; }
+  .search-box { min-width: 100%; order: -1; }
+  .search-box input { padding: 10px 12px 10px 36px; font-size: 16px; }
+  .sel { min-height: 42px; padding: 10px 32px 10px 12px; }
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0; }
+  .tbl-scroll table { min-width: 1100px; }
+  .footer-bar { flex-direction: column; gap: 6px; text-align: center; padding: 12px; }
+
+  /* Modal: full-bleed on mobile */
+  .overlay { padding: 0; align-items: stretch; }
+  .modal { width: 100%; max-width: 100%; max-height: 100%; margin: 0; border-radius: 0; padding: 20px 16px; }
+  .fgrid { grid-template-columns: 1fr; }
+  .fg.s2, .fg.s3 { grid-column: span 1; }
+  .fg input, .fg textarea, .fg select { font-size: 16px; min-height: 44px; padding: 10px 12px; }
+  .fg textarea { min-height: 80px; }
+  .modal-foot .btn { min-height: 46px; flex: 1; }
+  .toast { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+  /* Show cards, hide table when we have data */
+  .tbl-scroll.has-cards #tblWrap { display: none !important; }
+  .tbl-scroll.has-cards .job-cards { display: block !important; }
+}
+
+@media(max-width:480px){
+  body { font-size: 14px; }
+  header { padding: 0 10px; }
+  .main, .footer-bar { margin-left: 10px; margin-right: 10px; }
+  .crew-tab { padding: 10px 12px; }
+  .header-right .btn.btn-sm { padding: 8px 12px; font-size: 11px; }
+  .stat { padding: 12px 14px; }
 }
 </style>
 </head>
@@ -490,8 +575,6 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
       <span id="syncText">Connecting…</span>
     </div>
     <button class="btn btn-outline-light btn-sm" onclick="loadBoth()">↻ Refresh</button>
-    <button class="btn btn-outline-light btn-sm" onclick="forceDemo()">Load demo</button>
-    <button class="btn btn-outline-light btn-sm" onclick="testWrite()" title="Append a test row and open the sheet">Test write</button>
     <button class="btn btn-green btn-sm" onclick="openModal()">＋ Add Job</button>
   </div>
 </header>
@@ -580,12 +663,12 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   </div>
 
   <!-- TABLE -->
-  <div class="tbl-scroll">
+  <div class="tbl-scroll" id="tblScroll">
     <div id="stateBox" class="state-box">
       <div class="spinner"></div>
       <p>Loading from Google Sheets…</p>
-      <button class="btn btn-outline btn-sm" onclick="forceDemo()" style="margin-top:12px">Use demo data instead</button>
     </div>
+    <div id="jobCards" class="job-cards"></div>
     <div id="tblWrap" style="display:none">
       <table>
         <thead>
@@ -703,7 +786,6 @@ const TABS        = CONFIG.TABS;
 const APPS_SCRIPT = CONFIG.APPS_SCRIPT;
 
 let allJobs   = [[], []];
-let demoMode  = false;
 let crew     = 0;
 let editIdx  = null;
 let chartInst= null;
@@ -825,65 +907,21 @@ async function fetchCrew(ci) {
   return jobs;
 }
 
-function loadDemo() {
-  const mk = (i, ci, o) => ({ _idx: i, _crew: ci, ...o });
-  const jobs1 = [
-    mk(0,0,{jobNum:'18421',salesRep:'AP',client:'Acme Corp',startTime:'8:00 AM',endTime:'11:30 AM',hours:3.5,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:14,jobType:'Non-Crane',targetHr:750,jobCost:2713,targetRev:2625,actualHr:775,dolManHr:194,varHr:25,overUnder:0.033,tgtManHr:150,vsManHr:0.29,reason:'BID WELL',notes:''}),
-    mk(1,0,{jobNum:'18422',salesRep:'SN',client:'Builder Co',startTime:'9:00 AM',endTime:'12:00 PM',hours:3,crewSize:3,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:9,jobType:'Crane',targetHr:1250,jobCost:3450,targetRev:3750,actualHr:1150,dolManHr:383,varHr:-100,overUnder:-0.08,tgtManHr:250,vsManHr:0.53,reason:'Slightly Under',notes:'Weather delay'}),
-    mk(2,0,{jobNum:'18423',salesRep:'MB',client:'Home Works',startTime:'1:00 PM',endTime:'4:30 PM',hours:3.5,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:14,jobType:'Non-Crane',targetHr:750,jobCost:2100,targetRev:2625,actualHr:600,dolManHr:150,varHr:-150,overUnder:-0.20,tgtManHr:150,vsManHr:0,reason:'',notes:'Training day'}),
-    mk(3,0,{jobNum:'18424',salesRep:'AP',client:'New Build LLC',startTime:'8:00 AM',endTime:'',hours:4,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:16,jobType:'Non-Crane',targetHr:750,jobCost:0,targetRev:3000,actualHr:0,dolManHr:0,varHr:0,overUnder:0,tgtManHr:150,vsManHr:0,reason:'',notes:'Pending invoice'}),
-  ];
-  const jobs2 = [
-    mk(0,1,{jobNum:'18425',salesRep:'SN',client:'Downtown Dev',startTime:'7:30 AM',endTime:'11:00 AM',hours:3.5,crewSize:5,crewSplit:'3/2',splitStart:'9:00 AM',splitEnd:'10:30 AM',splitHrs:1.5,manHrs:20,jobType:'Crane',targetHr:1250,jobCost:5000,targetRev:4375,actualHr:1000,dolManHr:250,varHr:-250,overUnder:-0.20,tgtManHr:250,vsManHr:0,reason:'Go Back',notes:''}),
-    mk(1,1,{jobNum:'18426',salesRep:'MB',client:'Estate Co',startTime:'8:00 AM',endTime:'2:00 PM',hours:6,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:24,jobType:'Non-Crane',targetHr:750,jobCost:4725,targetRev:4500,actualHr:788,dolManHr:197,varHr:38,overUnder:0.05,tgtManHr:150,vsManHr:0.31,reason:'BID WELL',notes:''}),
-  ];
-  allJobs[0]=jobs1; allJobs[1]=jobs2;
-  rowMap[0]={0:2,1:3,2:4,3:5}; rowMap[1]={0:2,1:3};
-  g('cnt0').textContent=jobs1.length; g('cnt1').textContent=jobs2.length;
-}
-
 async function loadBoth() {
-  demoMode = false;
   setLed('pulse','Loading…'); showState('loading');
-  // Show demo immediately so user always sees something
-  loadDemo();
-  refresh();
+  g('stateBox').innerHTML = '<div class="spinner"></div><p>Loading from Google Sheets…</p>';
   try {
     const [c1,c2] = await Promise.all([fetchCrew(0),fetchCrew(1)]);
     allJobs[0]=c1; allJobs[1]=c2;
     g('cnt0').textContent=c1.length; g('cnt1').textContent=c2.length;
     setLed('ok',`Synced · ${c1.length+c2.length} jobs`);
-    demoMode = false;
     refresh();
     toast(`Crew 1: ${c1.length} · Crew 2: ${c2.length} jobs from Sheets`,'ok');
   } catch(e) {
-    demoMode = true;
-    setLed('pulse','Demo mode');
-    refresh();
-    toast('Using demo data — ' + (e.message || 'Sheets unavailable'),'err');
-  }
-}
-
-function forceDemo() {
-  demoMode = true;
-  loadDemo();
-  setLed('pulse','Demo mode');
-  refresh();
-  toast('Showing demo data. Click Refresh to retry Sheets.','err');
-}
-
-async function testWrite() {
-  var testRow = ['','TEST-WRITE-' + Date.now(),'Test','Test Client','','','','','','','','','','','','','','','','','','','','Test row from app',''];
-  toast('Sending test row…','ok');
-  try {
-    var r = await appendToSheet(0, testRow);
-    var msg = r && r.row ? 'Wrote to row ' + r.row + ' on ' + (r.tab || 'Crew 1 Bid Tracking') : 'Done';
-    toast(msg, 'ok');
-    if (r && r.url) window.open(r.url, '_blank');
-    if (r && r.row) alert('Test row written to ROW ' + r.row + '.\n\n1. A new tab should open to your sheet.\n2. Go to "Crew 1 Bid Tracking" tab.\n3. Scroll to row ' + r.row + '.\n4. Search for "TEST-WRITE" (Ctrl+F).\n\nIf you don\'t see it: SHEET_ID in index.html may not match this spreadsheet. Check the URL.');
-  } catch (e) {
-    toast('Test failed: ' + (e.message || ''), 'err');
-    alert('Test failed: ' + (e.message || 'unknown'));
+    setLed('dead','Offline');
+    g('stateBox').innerHTML = `<p>${x(e.message || 'Sheets unavailable')}</p><button class="btn btn-outline btn-sm" onclick="loadBoth()" style="margin-top:12px">↻ Retry</button>`;
+    g('stateBox').style.display = 'flex';
+    toast(e.message || 'Could not load from Sheets','err');
   }
 }
 
@@ -895,6 +933,7 @@ function showState(s){
   g('stateBox').style.display = s==='loading'?'flex':'none';
   g('tblWrap').style.display  = s==='table' ?'block':'none';
   g('emptyBox').style.display = s==='empty' ?'flex':'none';
+  g('tblScroll').classList.toggle('has-cards', s==='table');
 }
 
 // ── SWITCH ────────────────────────────────────────────────────────────────────
@@ -1024,6 +1063,46 @@ function renderTable(){
   g('rowCount').textContent=`Showing ${jobs.length} of ${allJobs[crew].length} jobs`;
 
   const isCrane=t=>t&&t.toLowerCase().includes('crane')&&!t.toLowerCase().includes('non');
+  const isMob = () => window.innerWidth <= 768;
+
+  if (isMob()) {
+    g('jobCards').innerHTML = jobs.map(j => {
+      const perf = perfOf(j);
+      const rc = perf === 'well' ? 'r-well' : perf === 'under' ? 'r-under' : perf === 'bad' ? 'r-bad' : '';
+      const cr = isCrane(j.jobType);
+      const typeH = j.jobType ? (cr ? 'Crane' : 'Non-Crane') : '—';
+      let pbClass, pbText;
+      const ouRaw = j.overUnder !== 0 ? j.overUnder : (j.actualHr && j.targetHr ? (j.actualHr - j.targetHr) / j.targetHr : null);
+      const ou = ouRaw != null ? (ouRaw * 100).toFixed(1) : null;
+      if (perf === 'incomplete') { pbClass = 'pb-incomplete'; pbText = 'Pending'; }
+      else { pbClass = perf === 'well' ? 'pb-well' : perf === 'under' ? 'pb-under' : 'pb-bad'; pbText = ou != null ? (parseFloat(ou) > 0 ? '+' : '') + ou + '%' : '—'; }
+      return `<div class="job-card ${rc}">
+        <div class="job-card-top">
+          <span class="job-card-id">#${x(j.jobNum)}</span>
+          <span class="perf-badge ${pbClass}">${pbText}</span>
+        </div>
+        <div class="job-card-client">${x(j.client) || '—'}</div>
+        <div class="job-card-meta">
+          <span class="rep-tag">${x(j.salesRep) || '—'}</span>
+          <span class="type-badge ${cr?'tb-crane':'tb-non'}">${typeH}</span>
+          <span>${x(j.startTime) || '—'} · ${j.hours ? j.hours.toFixed(1) + 'hrs' : '—'}</span>
+        </div>
+        <div class="job-card-row">
+          Target ${j.targetHr ? fm(j.targetHr) : '—'} &nbsp; Actual ${j.actualHr ? fm(j.actualHr) : '—'} &nbsp; Cost ${j.jobCost ? fm(j.jobCost) : '—'}
+        </div>
+        <div class="job-card-bottom">
+          <span class="note-td" style="flex:1">${x(j.reason) || x(j.notes) || ''}</span>
+          <div class="job-card-actions">
+            <button class="btn btn-outline btn-sm" onclick="editJob(${j._idx},${j._crew})">Edit</button>
+            <button class="btn-danger-ghost" onclick="delJob(${j._idx},${j._crew})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    g('jobCards').innerHTML = '';
+  }
+
   g('tbody').innerHTML=jobs.map((j,i)=>{
     const perf=perfOf(j);
     const rc=perf==='well'?'r-well':perf==='under'?'r-under':perf==='bad'?'r-bad':'';
@@ -1241,20 +1320,6 @@ async function saveJob(){
   console.log('rowMap:', rowMap);
   closeModal();
   toast('Saving…', 'ok');
-
-  if (demoMode) {
-    if (editIdx !== null) {
-      const i = allJobs[crew].findIndex(j => j._idx === editIdx);
-      if (i > -1) allJobs[crew][i] = nj;
-    } else {
-      allJobs[crew].push(nj);
-      g('cnt' + crew).textContent = allJobs[crew].length;
-    }
-    refresh();
-    toast('Saved locally (demo mode — not persisted)', 'err');
-    return;
-  }
-
   try {
     if(editIdx !== null){
       const sheetRow = rowMap[crew][editIdx];
@@ -1279,16 +1344,8 @@ async function saveJob(){
 }
 
 async function delJob(idx,ci){
-  if(!confirm('Delete this job? ' + (demoMode ? '(Demo: local only)' : 'This will remove it from the Google Sheet.'))) return;
-
+  if(!confirm('Delete this job? This will remove it from the Google Sheet.')) return;
   toast('Deleting…','ok');
-  if (demoMode) {
-    allJobs[ci]=allJobs[ci].filter(j=>j._idx!==idx);
-    g('cnt'+ci).textContent=allJobs[ci].length;
-    refresh();
-    toast('Deleted locally (demo mode)', 'err');
-    return;
-  }
   try {
     const sheetRow = rowMap[ci][idx];
     if(sheetRow) await deleteFromSheet(ci, sheetRow);
@@ -1317,7 +1374,9 @@ function toast(msg,type){
 }
 
 g('overlay').addEventListener('click',e=>{if(e.target===g('overlay'))closeModal();});
-try { loadBoth(); } catch (err) { loadDemo(); refresh(); setLed('pulse','Demo mode'); toast('Error: ' + (err.message || 'unknown'),'err'); }
+let _resizeT;
+window.addEventListener('resize',()=>{ clearTimeout(_resizeT); _resizeT=setTimeout(()=>{ if(g('stateBox').style.display!=='flex') renderTable(); }, 150); });
+try { loadBoth(); } catch (err) { setLed('dead','Error'); toast('Error: ' + (err.message || 'unknown'),'err'); }
 </script>
 </body>
 </html>
