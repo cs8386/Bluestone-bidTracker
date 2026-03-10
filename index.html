@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bluestone Tree · Bid Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Bluestone brand palette extracted from their site */
+  --forest:     #1e3a2f;   /* deep forest green */
+  --forest-mid: #2d5242;   /* mid green */
+  --forest-lt:  #3d6e58;   /* lighter green */
+  --stone:      #2c3e50;   /* bluestone/slate */
+  --stone-mid:  #3d5166;   /* mid slate */
+  --bark:       #5c4a32;   /* warm bark brown */
+  --bark-lt:    #8b7355;
+
+  --cream:      #f7f4ef;   /* natural cream */
+  --cream-dk:   #ede9e2;
+  --parchment:  #f2ede6;
+  --white:      #ffffff;
+
+  --sage:       #7aab8e;   /* muted sage green */
+  --sage-lt:    #a8c9b6;
+  --moss:       #4a7c63;
+
+  --amber:      #d4891a;
+  --amber-lt:   #f0b050;
+  --red-warn:   #c0392b;
+  --red-lt:     #e74c3c;
+
+  --text:       #1a2418;
+  --text-mid:   #3a4a3a;
+  --text-sub:   #6b7a6b;
+  --text-muted: #9aaa9a;
+  --border:     #ddd8cf;
+  --border-dk:  #c8c2b8;
+
+  --r: 8px;
+  --r-sm: 5px;
+  --shadow-sm: 0 1px 4px rgba(30,58,47,0.08);
+  --shadow:    0 3px 14px rgba(30,58,47,0.1);
+  --shadow-lg: 0 8px 36px rgba(30,58,47,0.14);
+}
+
+body {
+  background: var(--cream);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+}
+
+/* subtle wood grain noise overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-size: 200px;
+  opacity: 0.4;
+}
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--forest);
+  padding: 0 28px;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+  border-bottom: 3px solid var(--moss);
+}
+.logo-area {
+  display: flex; align-items: center; gap: 14px;
+}
+.logo-img {
+  height: 38px; width: auto;
+  filter: brightness(0) invert(1);
+  opacity: 0.95;
+}
+.logo-divider {
+  width: 1px; height: 28px;
+  background: rgba(255,255,255,0.2);
+}
+.logo-sub {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 11px; font-weight: 600;
+  color: var(--sage-lt);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+.sync-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px; padding: 5px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: rgba(255,255,255,0.6);
+}
+.led { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.led.ok     { background: #4ade80; box-shadow: 0 0 6px #4ade80; animation: glow 2.5s ease-in-out infinite; }
+.led.pulse  { background: var(--amber-lt); box-shadow: 0 0 6px var(--amber-lt); animation: blink 0.8s infinite; }
+.led.dead   { background: var(--red-lt); box-shadow: none; }
+@keyframes glow  { 0%,100%{opacity:1} 50%{opacity:0.4} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.15} }
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-weight: 600; font-size: 12.5px;
+  padding: 8px 16px; border-radius: var(--r-sm);
+  border: none; cursor: pointer; transition: all 0.18s;
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.btn-green {
+  background: var(--sage);
+  color: var(--white);
+}
+.btn-green:hover { background: var(--moss); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(74,124,99,0.4); }
+.btn-outline-light {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-outline-light:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.btn-outline {
+  background: var(--white);
+  color: var(--text-mid);
+  border: 1px solid var(--border-dk);
+  box-shadow: var(--shadow-sm);
+}
+.btn-outline:hover { border-color: var(--forest-lt); color: var(--forest); background: var(--cream); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-danger-ghost {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); padding: 5px 7px; border-radius: 4px;
+  font-size: 12px; transition: all 0.15s;
+}
+.btn-danger-ghost:hover { color: var(--red-warn); background: rgba(192,57,43,0.08); }
+
+/* ── CREW TABS ── */
+.tabs-bar {
+  position: relative; z-index: 1;
+  background: var(--forest-mid);
+  padding: 0 28px;
+  display: flex; gap: 2px; align-items: flex-end;
+  border-bottom: none;
+}
+.crew-tab {
+  padding: 10px 22px 11px;
+  font-size: 12.5px; font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer; border-radius: 8px 8px 0 0;
+  background: rgba(0,0,0,0.15);
+  transition: all 0.18s;
+  display: flex; align-items: center; gap: 8px;
+  user-select: none;
+}
+.crew-tab:hover { color: rgba(255,255,255,0.8); background: rgba(0,0,0,0.1); }
+.crew-tab.active { background: var(--cream); color: var(--forest); }
+.tab-count {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  background: rgba(255,255,255,0.12); border-radius: 8px; padding: 1px 7px;
+  color: rgba(255,255,255,0.6);
+}
+.crew-tab.active .tab-count { background: var(--forest); color: var(--sage-lt); }
+
+/* ── MAIN CARD ── */
+.main {
+  position: relative; z-index: 1;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  margin: 0 28px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* ── STATS ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.stat {
+  padding: 20px 22px;
+  border-right: 1px solid var(--border);
+  position: relative;
+  transition: background 0.15s;
+}
+.stat:last-child { border-right: none; }
+.stat:hover { background: var(--parchment); }
+.stat-top {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace; margin-bottom: 7px;
+}
+.stat-num {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 26px; font-weight: 700; line-height: 1; letter-spacing: -0.3px;
+}
+.stat-num.forest { color: var(--forest); }
+.stat-num.stone  { color: var(--stone); }
+.stat-num.amber  { color: var(--amber); }
+.stat-num.bark   { color: var(--bark); }
+.stat-num.sage   { color: var(--moss); }
+.stat-num.red    { color: var(--red-warn); }
+.stat-bot {
+  font-size: 11px; color: var(--text-sub);
+  margin-top: 5px; font-family: 'JetBrains Mono', monospace;
+}
+
+/* accent bar on hover */
+.stat::after {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  border-radius: 0; opacity: 0; transition: opacity 0.2s;
+}
+.stat:hover::after { opacity: 1; }
+.stat:nth-child(1)::after { background: var(--forest); }
+.stat:nth-child(2)::after { background: var(--stone); }
+.stat:nth-child(3)::after { background: var(--amber); }
+.stat:nth-child(4)::after { background: var(--red-warn); }
+.stat:nth-child(5)::after { background: var(--moss); }
+
+/* ── CHART ── */
+.chart-section {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--parchment);
+}
+.chart-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.chart-label { font-size: 12px; font-weight: 600; color: var(--text-mid); }
+.chart-legend {
+  display: flex; gap: 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-sub);
+}
+.leg { display: flex; align-items: center; gap: 5px; }
+.leg-ln { width: 18px; height: 2.5px; border-radius: 2px; }
+.chart-canvas { height: 140px; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--cream);
+}
+.search-box { position: relative; flex: 1; min-width: 200px; }
+.search-box input {
+  width: 100%;
+  background: var(--white); border: 1px solid var(--border-dk);
+  border-radius: var(--r-sm); padding: 8px 12px 8px 32px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px;
+  color: var(--text); outline: none; transition: all 0.18s;
+  box-shadow: var(--shadow-sm);
+}
+.search-box input::placeholder { color: var(--text-muted); }
+.search-box input:focus { border-color: var(--forest-lt); box-shadow: 0 0 0 3px rgba(61,110,88,0.1); }
+.srch-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; pointer-events: none; }
+.sel {
+  background: var(--white); border: 1px solid var(--border-dk);
+  border-radius: var(--r-sm); padding: 8px 28px 8px 11px;
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px;
+  color: var(--text-mid); outline: none; cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' fill='none'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%239aaa9a' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  transition: border-color 0.18s;
+}
+.sel:focus { border-color: var(--forest-lt); }
+
+/* ── TABLE ── */
+.tbl-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 1440px; }
+thead { background: var(--cream-dk); }
+th {
+  padding: 9px 11px;
+  text-align: left;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-sub); font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--border-dk);
+}
+th:first-child { padding-left: 18px; }
+
+tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  animation: fadeUp 0.25s ease both;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(30,58,47,0.03); }
+
+/* row tinting */
+tbody tr.r-well  { background: rgba(74,124,99,0.04); }
+tbody tr.r-well:hover  { background: rgba(74,124,99,0.08); }
+tbody tr.r-under { background: rgba(212,137,26,0.04); }
+tbody tr.r-under:hover { background: rgba(212,137,26,0.08); }
+tbody tr.r-bad   { background: rgba(192,57,43,0.04); }
+tbody tr.r-bad:hover   { background: rgba(192,57,43,0.07); }
+
+td {
+  padding: 10px 11px; vertical-align: middle;
+  white-space: nowrap; color: var(--text-mid);
+}
+td:first-child { padding-left: 18px; }
+td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+.td-job { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; color: var(--text); }
+.td-client { font-weight: 600; font-size: 13px; color: var(--text); max-width: 145px; overflow: hidden; text-overflow: ellipsis; }
+.rep-tag {
+  display: inline-block;
+  background: var(--cream-dk); border: 1px solid var(--border-dk);
+  border-radius: 4px; padding: 2px 7px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-mid);
+}
+
+.type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.tb-crane { background: rgba(44,62,80,0.1); color: var(--stone); border: 1px solid rgba(44,62,80,0.2); }
+.tb-non   { background: rgba(74,124,99,0.1); color: var(--moss); border: 1px solid rgba(74,124,99,0.2); }
+.type-dot { width: 5px; height: 5px; border-radius: 50%; }
+.td-crane-d { background: var(--stone-mid); }
+.td-non-d   { background: var(--moss); }
+
+.perf-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500;
+}
+.pb-well       { background: rgba(74,124,99,0.12); color: var(--moss); border: 1px solid rgba(74,124,99,0.25); }
+.pb-under      { background: rgba(212,137,26,0.12); color: var(--amber); border: 1px solid rgba(212,137,26,0.25); }
+.pb-bad        { background: rgba(192,57,43,0.1);   color: var(--red-warn); border: 1px solid rgba(192,57,43,0.2); }
+.pb-incomplete { background: rgba(100,100,120,0.1); color: var(--text-sub); border: 1px solid var(--border-dk); }
+.multi-day-tag { display:inline-block; margin-left:5px; font-size:9px; font-weight:700;
+                 background: rgba(44,62,80,0.1); color: var(--stone-mid);
+                 border: 1px solid rgba(44,62,80,0.2); border-radius:3px; padding:1px 5px;
+                 font-family:'JetBrains Mono',monospace; letter-spacing:0.04em; vertical-align:middle; }
+
+.vp { color: var(--moss);     font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+.vn { color: var(--red-warn); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+.vz { color: var(--text-sub); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+.note-td { max-width: 155px; overflow: hidden; text-overflow: ellipsis; color: var(--text-sub); font-size: 12px; }
+
+/* state boxes */
+.state-box {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 64px 20px; gap: 14px; color: var(--text-muted);
+}
+.spinner {
+  width: 26px; height: 26px;
+  border: 2px solid var(--border);
+  border-top-color: var(--forest);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.state-box p { font-size: 13px; font-family: 'JetBrains Mono', monospace; }
+
+/* ── FOOTER BAR ── */
+.footer-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 18px;
+  background: var(--cream-dk);
+  border-top: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted);
+  margin: 0 28px 28px;
+  border-radius: 0 0 10px 10px;
+}
+
+/* ── MODAL ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(15,25,18,0.55); backdrop-filter: blur(6px);
+  z-index: 200; align-items: center; justify-content: center;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 26px 28px;
+  width: 700px; max-width: 96vw; max-height: 90vh; overflow-y: auto;
+  animation: popIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(0.95)translateY(8px)} to{opacity:1;transform:scale(1)translateY(0)} }
+.modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 22px; padding-bottom: 14px; border-bottom: 2px solid var(--border);
+}
+.modal-head h2 { font-family: 'Libre Baskerville', serif; font-size: 18px; font-weight: 700; color: var(--forest); }
+.x-btn {
+  background: var(--cream); border: 1px solid var(--border-dk);
+  border-radius: 5px; color: var(--text-sub); font-size: 16px;
+  cursor: pointer; padding: 3px 9px; line-height: 1.4;
+  transition: all 0.15s;
+}
+.x-btn:hover { background: var(--cream-dk); color: var(--text); }
+
+.fsec { margin-bottom: 20px; }
+.fsec-hd {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--forest);
+  font-family: 'JetBrains Mono', monospace;
+  padding-bottom: 9px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.fsec-hd::before { content:''; display:inline-block; width:3px; height:12px; background:var(--forest); border-radius:2px; }
+.fgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 11px; }
+.fg { display: flex; flex-direction: column; gap: 4px; }
+.fg.s2 { grid-column: span 2; }
+.fg.s3 { grid-column: span 3; }
+.fg label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-sub); font-family: 'JetBrains Mono', monospace;
+}
+.fg label.auto-lbl { color: var(--moss); }
+.fg input, .fg textarea, .fg select {
+  background: var(--cream); border: 1px solid var(--border-dk);
+  border-radius: var(--r-sm); padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12.5px;
+  color: var(--text); outline: none; width: 100%; transition: all 0.15s;
+}
+.fg input:focus, .fg textarea:focus, .fg select:focus {
+  border-color: var(--forest-lt); background: var(--white);
+  box-shadow: 0 0 0 3px rgba(61,110,88,0.1);
+}
+.fg input.comp { background: rgba(74,124,99,0.06); border-color: rgba(74,124,99,0.3); color: var(--moss); }
+.fg textarea { resize: vertical; min-height: 60px; }
+.modal-foot {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+}
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 26px; right: 26px;
+  background: var(--forest);
+  border: 1px solid var(--forest-lt);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+  padding: 11px 16px;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; color: rgba(255,255,255,0.9);
+  display: flex; align-items: center; gap: 9px;
+  transform: translateY(80px) scale(0.95); opacity: 0;
+  transition: all 0.28s cubic-bezier(0.34,1.56,0.64,1); z-index: 300;
+}
+.toast.show { transform: translateY(0) scale(1); opacity: 1; }
+.toast-led { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.toast.ok  .toast-led { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+.toast.err .toast-led { background: var(--red-lt); box-shadow: 0 0 8px var(--red-lt); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  header, .tabs-bar, .footer-bar { padding-left:16px; padding-right:16px; }
+  .main, .footer-bar { margin-left:16px; margin-right:16px; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .fgrid { grid-template-columns: 1fr 1fr; }
+  .fg.s3 { grid-column: span 2; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-area">
+    <img class="logo-img" src="https://bluestonetree.com/wp-content/uploads/2020/01/bluestone-tree-logo.png" alt="Bluestone Tree" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='block'">
+    <div id="logoFallback" style="display:none;font-family:'Libre Baskerville',serif;font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.2px;">Bluestone Tree</div>
+    <div class="logo-divider"></div>
+    <span class="logo-sub">Bid Tracker</span>
+  </div>
+  <div class="header-right">
+    <div class="sync-chip">
+      <div class="led pulse" id="syncLed"></div>
+      <span id="syncText">Connecting…</span>
+    </div>
+    <button class="btn btn-outline-light btn-sm" onclick="loadBoth()">↻ Refresh</button>
+    <button class="btn btn-outline-light btn-sm" onclick="forceDemo()">Load demo</button>
+    <button class="btn btn-outline-light btn-sm" onclick="testWrite()" title="Append a test row and open the sheet">Test write</button>
+    <button class="btn btn-green btn-sm" onclick="openModal()">＋ Add Job</button>
+  </div>
+</header>
+
+<!-- CREW TABS -->
+<div class="tabs-bar">
+  <div class="crew-tab active" id="tab0" onclick="switchCrew(0)">
+    🌲 Crew 1 <span class="tab-count" id="cnt0">—</span>
+  </div>
+  <div class="crew-tab" id="tab1" onclick="switchCrew(1)">
+    🌲 Crew 2 <span class="tab-count" id="cnt1">—</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-top">Total Jobs</div>
+      <div class="stat-num forest" id="s_total">—</div>
+      <div class="stat-bot" id="s_hrs">— total hrs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-top">Avg Target $/hr</div>
+      <div class="stat-num stone" id="s_tgthr">—</div>
+      <div class="stat-bot" id="s_tgtrev">— target rev</div>
+    </div>
+    <div class="stat">
+      <div class="stat-top">Avg Actual $/hr</div>
+      <div class="stat-num amber" id="s_acthr">—</div>
+      <div class="stat-bot" id="s_actdiff">vs target</div>
+    </div>
+    <div class="stat">
+      <div class="stat-top">Total Job Cost</div>
+      <div class="stat-num bark" id="s_cost">—</div>
+      <div class="stat-bot" id="s_avgcost">avg per job</div>
+    </div>
+    <div class="stat">
+      <div class="stat-top">On / Under Target</div>
+      <div class="stat-num sage" id="s_ontrack">—</div>
+      <div class="stat-bot" id="s_avgou">avg over/under</div>
+    </div>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-section">
+    <div class="chart-top">
+      <div class="chart-label">Actual $/hr vs Target $/hr — per job</div>
+      <div class="chart-legend">
+        <div class="leg"><div class="leg-ln" style="background:var(--forest)"></div>Actual $/hr</div>
+        <div class="leg"><div class="leg-ln" style="background:var(--border-dk)"></div>Target $/hr</div>
+      </div>
+    </div>
+    <div class="chart-canvas"><canvas id="chart"></canvas></div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="srch-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Search job #, client, rep, notes…" oninput="renderTable()">
+    </div>
+    <select class="sel" id="repFilter" onchange="renderTable()"><option value="">All Reps</option></select>
+    <select class="sel" id="typeFilter" onchange="renderTable()">
+      <option value="">All Types</option>
+      <option value="Crane">Crane</option>
+      <option value="Non-Crane">Non-Crane</option>
+    </select>
+    <select class="sel" id="perfFilter" onchange="renderTable()">
+      <option value="">All Performance</option>
+      <option value="well">Well Bid ✓</option>
+      <option value="under">Slightly Under</option>
+      <option value="bad">Underbid ✗</option>
+      <option value="incomplete">Pending / No Data</option>
+    </select>
+    <select class="sel" id="sortSel" onchange="renderTable()">
+      <option value="sheet_order">Sheet Order</option>
+      <option value="job_asc">Job # ↑</option>
+      <option value="job_desc">Job # ↓</option>
+      <option value="var_asc">Worst Variance</option>
+      <option value="var_desc">Best Variance</option>
+      <option value="cost_desc">Highest Cost</option>
+    </select>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tbl-scroll">
+    <div id="stateBox" class="state-box">
+      <div class="spinner"></div>
+      <p>Loading from Google Sheets…</p>
+      <button class="btn btn-outline btn-sm" onclick="forceDemo()" style="margin-top:12px">Use demo data instead</button>
+    </div>
+    <div id="tblWrap" style="display:none">
+      <table>
+        <thead>
+          <tr>
+            <th>Job #</th><th>Rep</th><th>Client</th>
+            <th>Start</th><th>End</th><th>Hrs</th>
+            <th>Crew</th><th>Split</th><th>Man Hrs</th><th>Type</th>
+            <th>Target $/hr</th><th>Job Cost</th><th>Target Rev</th>
+            <th>Actual $/hr</th><th>$/Man Hr</th>
+            <th>Var $/hr</th><th>% Over/Under</th>
+            <th>T$/Man Hr</th><th>% vs Man-Hr</th>
+            <th>Reason</th><th>Notes</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div id="emptyBox" class="state-box" style="display:none">
+      <p>No jobs match your filters.</p>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="footer-bar">
+  <span id="rowCount">—</span>
+  <span>bluestonetree.com · Bloomington, IN</span>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">Add Job</h2>
+      <button class="x-btn" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-hd">Job Info</div>
+      <div class="fgrid">
+        <div class="fg"><label>Job #</label><input type="text" id="f_job" placeholder="e.g. 18067"></div>
+        <div class="fg"><label>Sales Rep</label><input type="text" id="f_rep" placeholder="AP / SN / MB"></div>
+        <div class="fg"><label>Client</label><input type="text" id="f_client"></div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-hd">Time &amp; Crew</div>
+      <div class="fgrid">
+        <div class="fg"><label>Start Time</label><input type="text" id="f_start" placeholder="9:00 AM"></div>
+        <div class="fg"><label>End Time</label><input type="text" id="f_end" placeholder="11:30 AM"></div>
+        <div class="fg"><label>Total Hours</label><input type="number" id="f_hours" step="0.25" oninput="calc()"></div>
+        <div class="fg"><label>Crew Size</label><input type="number" id="f_crew" step="1" oninput="calc()"></div>
+        <div class="fg"><label>Crew Split</label><input type="text" id="f_crewsplit" placeholder="e.g. 4/2"></div>
+        <div class="fg"><label class="auto-lbl">↻ Man Hours</label><input type="number" id="f_manhrs" class="comp" step="0.25"></div>
+        <div class="fg"><label>Split Start</label><input type="text" id="f_sstart"></div>
+        <div class="fg"><label>Split End</label><input type="text" id="f_send"></div>
+        <div class="fg"><label>Split Hrs</label><input type="number" id="f_shrs" step="0.25" oninput="calc()"></div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-hd">Revenue &amp; Cost</div>
+      <div class="fgrid">
+        <div class="fg">
+          <label>Job Type</label>
+          <select id="f_type" onchange="calc()">
+            <option value="Non-Crane">Non-Crane ($750/hr)</option>
+            <option value="Crane">Crane ($1,250/hr)</option>
+          </select>
+        </div>
+        <div class="fg"><label class="auto-lbl">↻ Target $/hr</label><input type="number" id="f_tgthr" class="comp" step="0.01"></div>
+        <div class="fg"><label>Job Cost ($)</label><input type="number" id="f_cost" step="0.01" oninput="calc()"></div>
+        <div class="fg"><label class="auto-lbl">↻ Target Revenue</label><input type="number" id="f_tgtrev" class="comp" step="0.01"></div>
+        <div class="fg"><label class="auto-lbl">↻ Actual $/hr</label><input type="number" id="f_acthr" class="comp" step="0.01" oninput="calc()"></div>
+        <div class="fg"><label class="auto-lbl">↻ $/Man Hr</label><input type="number" id="f_manhr" class="comp" step="0.01"></div>
+        <div class="fg"><label class="auto-lbl">↻ Variance $/hr</label><input type="number" id="f_var" class="comp" step="0.01"></div>
+        <div class="fg"><label class="auto-lbl">↻ % Over/Under</label><input type="number" id="f_ou" class="comp" step="0.01"></div>
+        <div class="fg"><label class="auto-lbl">↻ Target $/Man Hr</label><input type="number" id="f_tmhr" class="comp" step="0.01"></div>
+        <div class="fg"><label class="auto-lbl">↻ % vs Man-Hr</label><input type="number" id="f_vmhr" class="comp" step="0.01"></div>
+      </div>
+    </div>
+
+    <div class="fsec">
+      <div class="fsec-hd">Notes</div>
+      <div class="fgrid">
+        <div class="fg s2"><label>Reason</label><input type="text" id="f_reason" placeholder="e.g. BID WELL, Go Back, Training…"></div>
+        <div class="fg s3"><label>Notes</label><textarea id="f_notes" placeholder="Additional context…"></textarea></div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-green" onclick="saveJob()">Save Job</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-led"></div>
+  <span id="toastMsg">—</span>
+</div>
+
+<script>
+// ── CONFIG (restrict API key in Google Cloud Console: APIs & Services → Credentials → API key → Application restrictions) ──
+const CONFIG = {
+  API_KEY:     'AIzaSyDV2HredphT8Z7Zq1sa-UdBVPgwiWCHpvc',
+  SHEET_ID:    '1MChs7gIQveiooe9NKxHqJRqYYHO1mmzLb1ZdMjZT2bc',
+  TABS:        ['Crew 1 Bid Tracking', 'Crew 2 Bid Tracking'],
+  APPS_SCRIPT: 'https://script.google.com/macros/s/AKfycbxpaWnZbtXq-BmWdTyzNzMkflqor7SP-sVIoR7HoPiepACwv7YL-7UufgGGuTFr-3iewQ/exec'
+};
+const API_KEY     = CONFIG.API_KEY;
+const SHEET_ID    = CONFIG.SHEET_ID;
+const TABS        = CONFIG.TABS;
+const APPS_SCRIPT = CONFIG.APPS_SCRIPT;
+
+let allJobs   = [[], []];
+let demoMode  = false;
+let crew     = 0;
+let editIdx  = null;
+let chartInst= null;
+let rowMap   = [{}, {}]; // maps job _idx to actual sheet row number
+
+// ── PARSE ─────────────────────────────────────────────────────────────────────
+function parseRow(raw, ci, ri) {
+  if (!raw || !Array.isArray(raw)) return null;
+  const flt = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+  const str = v => (v == null || v === '') ? '' : String(v).trim();
+  const tim = v => {
+    if (!v) return '';
+    const s = String(v).trim();
+    if (/am|pm/i.test(s)) return s;
+    const p = s.split(':');
+    if (p.length >= 2) {
+      let h = parseInt(p[0]), m = parseInt(p[1]);
+      const ap = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${String(m).padStart(2,'0')} ${ap}`;
+    }
+    return s;
+  };
+  const capPct = v => { const n = flt(v); return Math.abs(n) > 20 ? 0 : n; };
+
+  const hours    = flt(raw[6]);
+  const splitHrs = flt(raw[11]);
+  const jobCost  = flt(raw[15]);
+  const targetHr = flt(raw[14]);
+
+  // Actual $/hr formula from sheet:
+  // Crew 1: Job Cost / Total Hours  (P/G)
+  // Crew 2: Job Cost / (Total Hours + Split Hours)  (P/(G+L))
+  // If sheet returns 0/blank, calculate it ourselves
+  let actualHr = flt(raw[17]);
+  if (!actualHr && jobCost > 0) {
+    const totalHrs = hours + (ci === 1 ? splitHrs : 0);
+    if (totalHrs > 0) actualHr = jobCost / totalHrs;
+  }
+
+  // Variance $/hr = Actual - Target
+  let varHr = flt(raw[19]);
+  if (!varHr && actualHr && targetHr) varHr = actualHr - targetHr;
+
+  // % Over/Under = (Actual - Target) / Target
+  let overUnder = capPct(raw[20]);
+  if (!overUnder && actualHr && targetHr) {
+    const calc = (actualHr - targetHr) / targetHr;
+    overUnder = Math.abs(calc) > 20 ? 0 : calc;
+  }
+
+  // $/Man Hr = Job Cost / Man Hours
+  const manHrs   = flt(raw[12]);
+  let dolManHr   = flt(raw[18]);
+  if (!dolManHr && jobCost > 0 && manHrs > 0) dolManHr = jobCost / manHrs;
+
+  // Target Revenue = Target $/hr * Hours
+  let targetRev  = flt(raw[16]);
+  if (!targetRev && targetHr && hours) targetRev = targetHr * hours;
+
+  // % vs Man-Hr Target
+  const tgtManHr = flt(raw[21]);
+  let vsManHr    = capPct(raw[22]);
+  if (!vsManHr && dolManHr && tgtManHr) {
+    const calc = (dolManHr / tgtManHr) - 1;
+    vsManHr = Math.abs(calc) > 20 ? 0 : calc;
+  }
+
+  return {
+    _idx: ri, _crew: ci,
+    jobNum:    str(raw[1]),
+    salesRep:  str(raw[2]).replace(/\s+/g,' '),
+    client:    str(raw[3]),
+    startTime: tim(raw[4]),
+    endTime:   tim(raw[5]),
+    hours,
+    crewSize:  flt(raw[7]),
+    crewSplit: str(raw[8]),
+    splitStart:tim(raw[9]),
+    splitEnd:  tim(raw[10]),
+    splitHrs,
+    manHrs,
+    jobType:   str(raw[13]),
+    targetHr,
+    jobCost,
+    targetRev,
+    actualHr,
+    dolManHr,
+    varHr,
+    overUnder,
+    tgtManHr,
+    vsManHr,
+    reason:    str(raw[23]),
+    notes:     str(raw[24])
+  };
+}
+
+// ── FETCH ─────────────────────────────────────────────────────────────────────
+const FETCH_TIMEOUT = 8000;
+
+async function fetchCrew(ci) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(TABS[ci]+'!A:Y')}?key=${API_KEY}&valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
+  const res = await fetch(url, { signal: ctrl.signal });
+  clearTimeout(t);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  const rows = data.values || [];
+  rowMap[ci] = {}; // idx -> sheet row number (1-based, row 1 = header)
+  const jobs = [];
+  rows.slice(1).forEach((r, i) => {
+    const j = parseRow(r, ci, i);
+    if (j && j.jobNum !== '') {
+      rowMap[ci][i] = i + 2; // +2 because slice(1) and 1-based + header row
+      jobs.push(j);
+    }
+  });
+  return jobs;
+}
+
+function loadDemo() {
+  const mk = (i, ci, o) => ({ _idx: i, _crew: ci, ...o });
+  const jobs1 = [
+    mk(0,0,{jobNum:'18421',salesRep:'AP',client:'Acme Corp',startTime:'8:00 AM',endTime:'11:30 AM',hours:3.5,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:14,jobType:'Non-Crane',targetHr:750,jobCost:2713,targetRev:2625,actualHr:775,dolManHr:194,varHr:25,overUnder:0.033,tgtManHr:150,vsManHr:0.29,reason:'BID WELL',notes:''}),
+    mk(1,0,{jobNum:'18422',salesRep:'SN',client:'Builder Co',startTime:'9:00 AM',endTime:'12:00 PM',hours:3,crewSize:3,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:9,jobType:'Crane',targetHr:1250,jobCost:3450,targetRev:3750,actualHr:1150,dolManHr:383,varHr:-100,overUnder:-0.08,tgtManHr:250,vsManHr:0.53,reason:'Slightly Under',notes:'Weather delay'}),
+    mk(2,0,{jobNum:'18423',salesRep:'MB',client:'Home Works',startTime:'1:00 PM',endTime:'4:30 PM',hours:3.5,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:14,jobType:'Non-Crane',targetHr:750,jobCost:2100,targetRev:2625,actualHr:600,dolManHr:150,varHr:-150,overUnder:-0.20,tgtManHr:150,vsManHr:0,reason:'',notes:'Training day'}),
+    mk(3,0,{jobNum:'18424',salesRep:'AP',client:'New Build LLC',startTime:'8:00 AM',endTime:'',hours:4,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:16,jobType:'Non-Crane',targetHr:750,jobCost:0,targetRev:3000,actualHr:0,dolManHr:0,varHr:0,overUnder:0,tgtManHr:150,vsManHr:0,reason:'',notes:'Pending invoice'}),
+  ];
+  const jobs2 = [
+    mk(0,1,{jobNum:'18425',salesRep:'SN',client:'Downtown Dev',startTime:'7:30 AM',endTime:'11:00 AM',hours:3.5,crewSize:5,crewSplit:'3/2',splitStart:'9:00 AM',splitEnd:'10:30 AM',splitHrs:1.5,manHrs:20,jobType:'Crane',targetHr:1250,jobCost:5000,targetRev:4375,actualHr:1000,dolManHr:250,varHr:-250,overUnder:-0.20,tgtManHr:250,vsManHr:0,reason:'Go Back',notes:''}),
+    mk(1,1,{jobNum:'18426',salesRep:'MB',client:'Estate Co',startTime:'8:00 AM',endTime:'2:00 PM',hours:6,crewSize:4,crewSplit:'',splitStart:'',splitEnd:'',splitHrs:0,manHrs:24,jobType:'Non-Crane',targetHr:750,jobCost:4725,targetRev:4500,actualHr:788,dolManHr:197,varHr:38,overUnder:0.05,tgtManHr:150,vsManHr:0.31,reason:'BID WELL',notes:''}),
+  ];
+  allJobs[0]=jobs1; allJobs[1]=jobs2;
+  rowMap[0]={0:2,1:3,2:4,3:5}; rowMap[1]={0:2,1:3};
+  g('cnt0').textContent=jobs1.length; g('cnt1').textContent=jobs2.length;
+}
+
+async function loadBoth() {
+  demoMode = false;
+  setLed('pulse','Loading…'); showState('loading');
+  // Show demo immediately so user always sees something
+  loadDemo();
+  refresh();
+  try {
+    const [c1,c2] = await Promise.all([fetchCrew(0),fetchCrew(1)]);
+    allJobs[0]=c1; allJobs[1]=c2;
+    g('cnt0').textContent=c1.length; g('cnt1').textContent=c2.length;
+    setLed('ok',`Synced · ${c1.length+c2.length} jobs`);
+    demoMode = false;
+    refresh();
+    toast(`Crew 1: ${c1.length} · Crew 2: ${c2.length} jobs from Sheets`,'ok');
+  } catch(e) {
+    demoMode = true;
+    setLed('pulse','Demo mode');
+    refresh();
+    toast('Using demo data — ' + (e.message || 'Sheets unavailable'),'err');
+  }
+}
+
+function forceDemo() {
+  demoMode = true;
+  loadDemo();
+  setLed('pulse','Demo mode');
+  refresh();
+  toast('Showing demo data. Click Refresh to retry Sheets.','err');
+}
+
+async function testWrite() {
+  var testRow = ['','TEST-WRITE-' + Date.now(),'Test','Test Client','','','','','','','','','','','','','','','','','','','','Test row from app',''];
+  toast('Sending test row…','ok');
+  try {
+    var r = await appendToSheet(0, testRow);
+    var msg = r && r.row ? 'Wrote to row ' + r.row + ' on ' + (r.tab || 'Crew 1 Bid Tracking') : 'Done';
+    toast(msg, 'ok');
+    if (r && r.url) window.open(r.url, '_blank');
+    if (r && r.row) alert('Test row written to ROW ' + r.row + '.\n\n1. A new tab should open to your sheet.\n2. Go to "Crew 1 Bid Tracking" tab.\n3. Scroll to row ' + r.row + '.\n4. Search for "TEST-WRITE" (Ctrl+F).\n\nIf you don\'t see it: SHEET_ID in index.html may not match this spreadsheet. Check the URL.');
+  } catch (e) {
+    toast('Test failed: ' + (e.message || ''), 'err');
+    alert('Test failed: ' + (e.message || 'unknown'));
+  }
+}
+
+function setLed(s,t){
+  g('syncLed').className='led '+(s==='pulse'?'pulse':s==='dead'?'dead':'ok');
+  g('syncText').textContent=t;
+}
+function showState(s){
+  g('stateBox').style.display = s==='loading'?'flex':'none';
+  g('tblWrap').style.display  = s==='table' ?'block':'none';
+  g('emptyBox').style.display = s==='empty' ?'flex':'none';
+}
+
+// ── SWITCH ────────────────────────────────────────────────────────────────────
+function switchCrew(ci){
+  crew=ci;
+  g('tab0').className='crew-tab'+(ci===0?' active':'');
+  g('tab1').className='crew-tab'+(ci===1?' active':'');
+  refresh();
+}
+function refresh(){ fillReps(); updateStats(); renderChart(); renderTable(); }
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats(){
+  const jobs=allJobs[crew]; const n=jobs.length; if(!n) return;
+  const sumHrs=jobs.reduce((s,j)=>s+j.hours,0);
+  const sumCost=jobs.reduce((s,j)=>s+j.jobCost,0);
+  const sumTR=jobs.reduce((s,j)=>s+j.targetRev,0);
+  // Only include complete jobs (have actual $/hr) in rate averages
+  const complete=jobs.filter(j=>j.actualHr>0);
+  const wT=jobs.filter(j=>j.targetHr>0);
+  const avgA=complete.length?complete.reduce((s,j)=>s+j.actualHr,0)/complete.length:0;
+  const avgT=wT.length?wT.reduce((s,j)=>s+j.targetHr,0)/wT.length:0;
+  // Calculate overUnder fallback for jobs where sheet OU is 0 but we have actual+target
+  const ouJobs=complete.filter(j=>j.targetHr>0);
+  const avgOU=ouJobs.length?ouJobs.reduce((s,j)=>{
+    const ou=j.overUnder!==0?j.overUnder:(j.actualHr-j.targetHr)/j.targetHr;
+    return s+ou;
+  },0)/ouJobs.length:0;
+  const incomplete=jobs.filter(j=>!j.actualHr).length;
+  const onT=complete.filter(j=>perfOf(j)==='well').length;
+  const diff=avgA-avgT;
+  g('s_total').textContent=n;
+  g('s_hrs').textContent=sumHrs.toFixed(1)+' total hrs'+(incomplete?` · ${incomplete} pending`:'');
+  g('s_tgthr').textContent=fm(avgT);
+  g('s_tgtrev').textContent=fm(sumTR)+' target rev';
+  g('s_acthr').textContent=fm(avgA);
+  g('s_acthr').className='stat-num '+(diff>=0?'sage':'red');
+  g('s_actdiff').textContent=(diff>=0?'+':'')+fm(diff)+' vs target';
+  g('s_cost').textContent=fm(sumCost);
+  g('s_avgcost').textContent=fm(sumCost/n)+' avg/job';
+  g('s_ontrack').textContent=onT+'/'+complete.length;
+  g('s_avgou').textContent=(avgOU>=0?'+':'')+(avgOU*100).toFixed(1)+'% avg (complete jobs)';
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────────
+function renderChart(){
+  if (typeof Chart === 'undefined') return;
+  const jobs=allJobs[crew].filter(j=>j.actualHr>0).slice(0,40);
+  if(chartInst) chartInst.destroy();
+  try {
+  chartInst=new Chart(g('chart').getContext('2d'),{
+    type:'line',
+    data:{
+      labels:jobs.map(j=>'#'+j.jobNum),
+      datasets:[
+        {label:'Actual $/hr',data:jobs.map(j=>j.actualHr||null),
+         borderColor:'#2d5242',backgroundColor:'rgba(45,82,66,0.07)',
+         borderWidth:2,pointRadius:3,pointBackgroundColor:'#2d5242',tension:0.35,fill:true},
+        {label:'Target $/hr',data:jobs.map(j=>j.targetHr||null),
+         borderColor:'#c8c2b8',borderDash:[5,4],borderWidth:1.5,
+         pointRadius:2,pointBackgroundColor:'#c8c2b8',tension:0.35,fill:false}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1e3a2f',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+          titleColor:'#fff',bodyColor:'#a8c9b6',padding:10,cornerRadius:6,
+          callbacks:{label:c=>` ${c.dataset.label}: ${fm(c.parsed.y)}`}
+        }
+      },
+      scales:{
+        x:{ticks:{color:'#9aaa9a',font:{family:'JetBrains Mono',size:10},maxTicksLimit:16},grid:{color:'rgba(0,0,0,0.04)'}},
+        y:{ticks:{color:'#9aaa9a',font:{family:'JetBrains Mono',size:10},callback:v=>'$'+v},grid:{color:'rgba(0,0,0,0.05)'}}
+      }
+    }
+  });
+  } catch (err) { chartInst = null; }
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+function fillReps(){
+  const reps=[...new Set(allJobs[crew].map(j=>j.salesRep.trim()).filter(Boolean))].sort();
+  g('repFilter').innerHTML='<option value="">All Reps</option>'+reps.map(r=>`<option>${x(r)}</option>`).join('');
+}
+
+function perfOf(j){
+  // Jobs with no actual $/hr can't be evaluated yet
+  if(!j.actualHr) return 'incomplete';
+  const r=(j.reason||'').toLowerCase();
+  if(r.includes('well')||r.includes('bid well')) return 'well';
+  // Use overUnder from sheet if available, otherwise calculate from actual vs target
+  let ou = j.overUnder;
+  if(ou===0 && j.actualHr && j.targetHr){
+    ou = (j.actualHr - j.targetHr) / j.targetHr;
+  }
+  if(ou >= -0.05) return 'well';
+  if(ou >= -0.20) return 'under';
+  return 'bad';
+}
+
+function renderTable(){
+  const q=g('searchInput').value.toLowerCase();
+  const rF=g('repFilter').value, tF=g('typeFilter').value;
+  const pF=g('perfFilter').value, sF=g('sortSel').value;
+  let jobs=allJobs[crew].filter(j=>{
+    if(q&&![j.jobNum,j.client,j.salesRep,j.jobType,j.reason,j.notes].some(v=>String(v).toLowerCase().includes(q))) return false;
+    if(rF&&j.salesRep.trim()!==rF) return false;
+    if(tF&&j.jobType!==tF) return false;
+    if(pF&&perfOf(j)!==pF) return false;
+    return true;
+  });
+  if(sF==='sheet_order') jobs.sort((a,b)=>a._idx-b._idx);
+  else jobs.sort((a,b)=>{
+    if(sF==='job_asc')   return String(a.jobNum).localeCompare(String(b.jobNum),undefined,{numeric:true});
+    if(sF==='job_desc')  return String(b.jobNum).localeCompare(String(a.jobNum),undefined,{numeric:true});
+    if(sF==='var_asc')   return a.varHr-b.varHr;
+    if(sF==='var_desc')  return b.varHr-a.varHr;
+    if(sF==='cost_desc') return b.jobCost-a.jobCost;
+    return 0;
+  });
+  if(!jobs.length){ showState('empty'); g('rowCount').textContent='No jobs found'; return; }
+  showState('table');
+  g('rowCount').textContent=`Showing ${jobs.length} of ${allJobs[crew].length} jobs`;
+
+  const isCrane=t=>t&&t.toLowerCase().includes('crane')&&!t.toLowerCase().includes('non');
+  g('tbody').innerHTML=jobs.map((j,i)=>{
+    const perf=perfOf(j);
+    const rc=perf==='well'?'r-well':perf==='under'?'r-under':perf==='bad'?'r-bad':'';
+    const cr=isCrane(j.jobType);
+    const typeH=j.jobType
+      ?`<span class="type-badge ${cr?'tb-crane':'tb-non'}"><span class="type-dot ${cr?'td-crane-d':'td-non-d'}"></span>${cr?'Crane':'Non-Crane'}</span>`
+      :'—';
+    // Use fallback overUnder calculation if sheet value is 0 but we have data
+    const ouRaw = j.overUnder!==0 ? j.overUnder : (j.actualHr&&j.targetHr ? (j.actualHr-j.targetHr)/j.targetHr : null);
+    const ou = ouRaw!==null ? (ouRaw*100).toFixed(1) : null;
+    const vs = j.vsManHr!==0 ? (j.vsManHr*100).toFixed(1) : null;
+    const sp = (j.crewSplit&&j.crewSplit!=='0'&&j.crewSplit!=='0.0')?x(j.crewSplit):'—';
+    // Multi-day jobs: same job # appears more than once
+    const isMultiDay = allJobs[j._crew].filter(k=>k.jobNum===j.jobNum).length > 1;
+    const multiTag = isMultiDay ? '<span class="multi-day-tag">MULTI-DAY</span>' : '';
+    // Badge
+    let pbClass, pbText;
+    if(perf==='incomplete'){ pbClass='pb-incomplete'; pbText='Pending'; }
+    else { pbClass=perf==='well'?'pb-well':perf==='under'?'pb-under':'pb-bad'; pbText=ou!==null?(parseFloat(ou)>0?'+':'')+ou+'%':'—'; }
+    const pb=`<span class="perf-badge ${pbClass}">${pbText}</span>`;
+    // Actual $/hr coloring: green only if above target, red if below, grey if no target to compare
+    const actClass = j.actualHr&&j.targetHr ? (j.actualHr>=j.targetHr?'vp':'vn') : j.actualHr?'vz':'mono';
+    return `<tr class="${rc}" style="animation-delay:${i*15}ms">
+      <td class="td-job">${x(j.jobNum)}${multiTag}</td>
+      <td><span class="rep-tag">${x(j.salesRep)||'—'}</span></td>
+      <td class="td-client" title="${x(j.client)}">${x(j.client)||'—'}</td>
+      <td class="mono">${x(j.startTime)||'—'}</td>
+      <td class="mono">${x(j.endTime)||'—'}</td>
+      <td class="mono">${j.hours?j.hours.toFixed(2):'—'}</td>
+      <td class="mono">${j.crewSize||'—'}</td>
+      <td class="mono">${sp}</td>
+      <td class="mono">${j.manHrs?j.manHrs.toFixed(1):'—'}</td>
+      <td>${typeH}</td>
+      <td class="mono">${j.targetHr?fm(j.targetHr):'—'}</td>
+      <td class="mono">${j.jobCost?fm(j.jobCost):'—'}</td>
+      <td class="mono">${j.targetRev?fm(j.targetRev):'—'}</td>
+      <td class="${actClass}">${j.actualHr?fm(j.actualHr):'—'}</td>
+      <td class="mono">${j.dolManHr?fm(j.dolManHr):'—'}</td>
+      <td class="${j.varHr>0?'vp':j.varHr<0?'vn':'mono'}">${j.varHr?(j.varHr>0?'+':'')+fm(j.varHr):'—'}</td>
+      <td>${pb}</td>
+      <td class="mono">${j.tgtManHr?fm(j.tgtManHr):'—'}</td>
+      <td class="${j.vsManHr>0?'vp':j.vsManHr<0?'vn':'mono'}">${vs!==null?(parseFloat(vs)>0?'+':'')+vs+'%':'—'}</td>
+      <td class="note-td" title="${x(j.reason)}">${x(j.reason)||'—'}</td>
+      <td class="note-td" title="${x(j.notes)}">${x(j.notes)||'—'}</td>
+      <td style="display:flex;gap:4px;align-items:center;padding-right:10px">
+        <button class="btn btn-outline btn-sm" onclick="editJob(${j._idx},${j._crew})">Edit</button>
+        <button class="btn-danger-ghost" onclick="delJob(${j._idx},${j._crew})">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── AUTO-CALC ─────────────────────────────────────────────────────────────────
+function calc(){
+  const hrs   = fv('f_hours');
+  const cr    = fv('f_crew');
+  const shrs  = fv('f_shrs');   // split hours (used for Crew 2)
+  const type  = g('f_type').value;
+  const cost  = fv('f_cost');
+  const ci    = crew; // current crew index
+
+  // Target $/hr based on job type
+  const thr = type === 'Crane' ? 1250 : 750;
+  const tmh = type === 'Crane' ? 250  : 150;
+
+  // Man hours = total hours * crew size
+  const mh = hrs * cr;
+
+  // Target revenue = target $/hr * hours
+  const tr = thr * hrs;
+
+  // Actual $/hr = Job Cost / hours (Crew 1) or Job Cost / (hours + split hrs) (Crew 2)
+  const totalHrs = hrs + (ci === 1 ? shrs : 0);
+  const act = (cost > 0 && totalHrs > 0) ? cost / totalHrs : 0;
+
+  // $/Man Hr = Job Cost / Man Hours
+  const dmh = mh > 0 ? cost / mh : 0;
+
+  // Variance = Actual - Target
+  const vhr = act ? act - thr : 0;
+
+  // % Over/Under = (Actual - Target) / Target
+  const ou = (act && thr) ? (act - thr) / thr : 0;
+
+  // % vs Man-Hr = ($/Man Hr / Target $/Man Hr) - 1
+  const vmh = (dmh && tmh) ? (dmh / tmh) - 1 : 0;
+
+  sv('f_tgthr',  thr);
+  sv('f_manhrs', mh  ? +mh.toFixed(2)  : '');
+  sv('f_tgtrev', tr  ? +tr.toFixed(2)  : '');
+  sv('f_acthr',  act ? +act.toFixed(2) : '');
+  sv('f_manhr',  dmh ? +dmh.toFixed(2) : '');
+  sv('f_var',    act ? +vhr.toFixed(2) : '');
+  sv('f_ou',     act ? +(ou*100).toFixed(2) : '');
+  sv('f_tmhr',   tmh);
+  sv('f_vmhr',   dmh ? +(vmh*100).toFixed(2) : '');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+const FMAP={job:'jobNum',rep:'salesRep',client:'client',start:'startTime',end:'endTime',hours:'hours',crew:'crewSize',crewsplit:'crewSplit',sstart:'splitStart',send:'splitEnd',shrs:'splitHrs',cost:'jobCost',acthr:'actualHr',reason:'reason',notes:'notes'};
+
+function openModal(job=null){
+  editIdx=null;
+  g('modalTitle').textContent=job?'Edit Job':'Add Job';
+  Object.keys(FMAP).forEach(f=>{const e=g('f_'+f);if(e)e.value='';});
+  g('f_type').value='Non-Crane';
+  ['f_tgthr','f_manhrs','f_tgtrev','f_manhr','f_var','f_ou','f_tmhr','f_vmhr'].forEach(f=>g(f).value='');
+  if(job){
+    editIdx=job._idx;
+    Object.entries(FMAP).forEach(([f,k])=>{const e=g('f_'+f);if(e)e.value=job[k]||'';});
+    g('f_type').value=job.jobType||'Non-Crane';
+    sv('f_tgthr',job.targetHr); sv('f_manhrs',job.manHrs);
+    sv('f_tgtrev',job.targetRev); sv('f_manhr',job.dolManHr);
+    sv('f_var',job.varHr);
+    sv('f_ou',job.overUnder?+(job.overUnder*100).toFixed(2):'');
+    sv('f_tmhr',job.tgtManHr);
+    sv('f_vmhr',job.vsManHr?+(job.vsManHr*100).toFixed(2):'');
+  }
+  g('overlay').classList.add('open');
+}
+function editJob(idx,ci){openModal(allJobs[ci].find(j=>j._idx===idx));}
+function closeModal(){g('overlay').classList.remove('open');}
+
+function jobToRow(nj) {
+  // Convert job object back to sheet row array matching columns A-Y
+  const pct = v => v ? v : '';  // store percentages as decimals
+  const today = new Date();
+  const dateStr = (today.getMonth()+1) + '/' + today.getDate() + '/' + String(today.getFullYear()).slice(-2);
+  return [
+    dateStr,               // A: Date (MM/DD/YY)
+    nj.jobNum,             // B: Job #
+    nj.salesRep,           // C: Sales Rep
+    nj.client,             // D: Client
+    nj.startTime,          // E: Start Time
+    nj.endTime,            // F: End Time
+    nj.hours||'',          // G: Total Hours
+    nj.crewSize||'',       // H: Crew Size
+    nj.crewSplit||'',      // I: Crew Split
+    nj.splitStart||'',     // J: Split Start
+    nj.splitEnd||'',       // K: Split End
+    nj.splitHrs||'',       // L: Split Hours
+    nj.manHrs||'',         // M: Man Hours
+    nj.jobType||'',        // N: Job Type
+    nj.targetHr||'',       // O: Target $/hr
+    nj.jobCost||'',        // P: Job Cost
+    nj.targetRev||'',      // Q: Target Revenue
+    nj.actualHr||'',       // R: Actual $/hr
+    nj.dolManHr||'',       // S: $/Man Hr
+    nj.varHr||'',          // T: Variance $/hr
+    pct(nj.overUnder),     // U: % Over/Under
+    nj.tgtManHr||'',       // V: Target $/Man Hr
+    pct(nj.vsManHr),       // W: % vs Man-Hr
+    nj.reason||'',         // X: Reason
+    nj.notes||''           // Y: Notes
+  ];
+}
+
+function callScript(payload) {
+  return new Promise((resolve, reject) => {
+    const cb = '_bluestone_' + Date.now();
+    window[cb] = (body) => {
+      delete window[cb];
+      script.parentNode?.removeChild(script);
+      if (body.error) reject(new Error(body.error));
+      else if (body.success === false) reject(new Error(body.message || 'Operation failed'));
+      else resolve(body);
+    };
+    const data = encodeURIComponent(JSON.stringify(payload));
+    const sep = APPS_SCRIPT.indexOf('?') >= 0 ? '&' : '?';
+    const script = document.createElement('script');
+    script.src = APPS_SCRIPT + sep + 'data=' + data + '&callback=' + cb;
+    script.onerror = () => {
+      delete window[cb];
+      script.parentNode?.removeChild(script);
+      reject(new Error('Request failed. Check Apps Script URL and authorization.'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+async function writeToSheet(ci, rowNum, values) {
+  return callScript({ sheetId: SHEET_ID, action: 'update', tab: TABS[ci], row: rowNum, values });
+}
+
+async function appendToSheet(ci, values) {
+  return callScript({ sheetId: SHEET_ID, action: 'append', tab: TABS[ci], values });
+}
+
+async function deleteFromSheet(ci, rowNum) {
+  return callScript({ sheetId: SHEET_ID, action: 'delete', tab: TABS[ci], row: rowNum });
+}
+
+async function saveJob(){
+  const jobNum=g('f_job').value.trim();
+  if(!jobNum){toast('Job # is required','err');return;}
+
+
+  const ou=fv('f_ou'), vs=fv('f_vmhr');
+  const nj={
+    _idx:editIdx!==null?editIdx:allJobs[crew].length, _crew:crew,
+    jobNum, salesRep:gv('f_rep'), client:gv('f_client'),
+    startTime:gv('f_start'), endTime:gv('f_end'),
+    hours:fv('f_hours'), crewSize:fv('f_crew'), crewSplit:gv('f_crewsplit'),
+    splitStart:gv('f_sstart'), splitEnd:gv('f_send'), splitHrs:fv('f_shrs'),
+    manHrs:fv('f_manhrs'), jobType:g('f_type').value,
+    targetHr:fv('f_tgthr'), jobCost:fv('f_cost'), targetRev:fv('f_tgtrev'),
+    actualHr:fv('f_acthr'), dolManHr:fv('f_manhr'), varHr:fv('f_var'),
+    overUnder:ou?ou/100:0, tgtManHr:fv('f_tmhr'), vsManHr:vs?vs/100:0,
+    reason:gv('f_reason'), notes:gv('f_notes')
+  };
+
+  const rowValues = jobToRow(nj);
+  console.log('Saving job:', nj.jobNum, 'editIdx:', editIdx, 'crew:', crew);
+  console.log('Row values:', rowValues);
+  console.log('rowMap:', rowMap);
+  closeModal();
+  toast('Saving…', 'ok');
+
+  if (demoMode) {
+    if (editIdx !== null) {
+      const i = allJobs[crew].findIndex(j => j._idx === editIdx);
+      if (i > -1) allJobs[crew][i] = nj;
+    } else {
+      allJobs[crew].push(nj);
+      g('cnt' + crew).textContent = allJobs[crew].length;
+    }
+    refresh();
+    toast('Saved locally (demo mode — not persisted)', 'err');
+    return;
+  }
+
+  try {
+    if(editIdx !== null){
+      const sheetRow = rowMap[crew][editIdx];
+      if(sheetRow) await writeToSheet(crew, sheetRow, rowValues);
+      else await appendToSheet(crew, rowValues);
+      const i=allJobs[crew].findIndex(j=>j._idx===editIdx);
+      if(i>-1) allJobs[crew][i]=nj;
+      toast('Job saved to sheet ✓', 'ok');
+    } else {
+      var result = await appendToSheet(crew, rowValues);
+      allJobs[crew].push(nj);
+      g('cnt'+crew).textContent=allJobs[crew].length;
+      var msg = result && result.row ? 'Row ' + result.row + ' on ' + (result.tab || TABS[crew]) + ' — check sheet' : 'Job added ✓';
+      toast(msg, 'ok');
+    }
+    refresh();
+    setTimeout(()=>loadBoth(), 1500);
+  } catch(e) {
+    toast('Save failed: ' + (e.message || 'unknown error'), 'err');
+    refresh();
+  }
+}
+
+async function delJob(idx,ci){
+  if(!confirm('Delete this job? ' + (demoMode ? '(Demo: local only)' : 'This will remove it from the Google Sheet.'))) return;
+
+  toast('Deleting…','ok');
+  if (demoMode) {
+    allJobs[ci]=allJobs[ci].filter(j=>j._idx!==idx);
+    g('cnt'+ci).textContent=allJobs[ci].length;
+    refresh();
+    toast('Deleted locally (demo mode)', 'err');
+    return;
+  }
+  try {
+    const sheetRow = rowMap[ci][idx];
+    if(sheetRow) await deleteFromSheet(ci, sheetRow);
+    allJobs[ci]=allJobs[ci].filter(j=>j._idx!==idx);
+    g('cnt'+ci).textContent=allJobs[ci].length;
+    refresh();
+    toast('Job deleted from sheet ✓','ok');
+    setTimeout(()=>loadBoth(), 1500);
+  } catch(e) {
+    toast('Delete failed: '+ (e.message || 'unknown error'),'err');
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const g  =id=>document.getElementById(id);
+const gv =id=>g(id)?.value?.trim()||'';
+const fv =id=>parseFloat(g(id)?.value)||0;
+const sv =(id,v)=>{if(g(id))g(id).value=(v!==undefined&&v!==''&&v!==0)?v:'';};
+const fm =n=>{if(!n&&n!==0)return'—';return'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+const x  =s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function toast(msg,type){
+  g('toastMsg').textContent=msg;
+  const t=g('toast'); t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+g('overlay').addEventListener('click',e=>{if(e.target===g('overlay'))closeModal();});
+try { loadBoth(); } catch (err) { loadDemo(); refresh(); setLed('pulse','Demo mode'); toast('Error: ' + (err.message || 'unknown'),'err'); }
+</script>
+</body>
+</html>
