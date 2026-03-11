@@ -442,6 +442,7 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   color: var(--text-sub); font-family: 'JetBrains Mono', monospace;
 }
 .fg label.auto-lbl { color: var(--moss); }
+.fg label.req::after { content: ' *'; color: var(--red-warn); font-weight: 700; }
 .fg input, .fg textarea, .fg select {
   background: var(--cream); border: 1px solid var(--border-dk);
   border-radius: var(--r-sm); padding: 8px 10px;
@@ -725,24 +726,24 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
     <div class="fsec">
       <div class="fsec-hd">Job Info</div>
       <div class="fgrid">
-        <div class="fg"><label>Job #</label><input type="text" id="f_job" placeholder="e.g. 18067"></div>
-        <div class="fg"><label>Sales Rep</label><input type="text" id="f_rep" placeholder="AP / SN / MB"></div>
-        <div class="fg"><label>Client</label><input type="text" id="f_client"></div>
+        <div class="fg"><label class="req">Job #</label><input type="text" id="f_job" placeholder="e.g. 18067"></div>
+        <div class="fg"><label class="req">Sales Rep</label><input type="text" id="f_rep" placeholder="AP / SN / MB"></div>
+        <div class="fg"><label class="req">Client</label><input type="text" id="f_client"></div>
       </div>
     </div>
 
     <div class="fsec">
       <div class="fsec-hd">Time &amp; Crew</div>
       <div class="fgrid">
-        <div class="fg"><label>Start Time</label><input type="text" id="f_start" placeholder="9:00 AM"></div>
-        <div class="fg"><label>End Time</label><input type="text" id="f_end" placeholder="11:30 AM"></div>
-        <div class="fg"><label>Total Hours</label><input type="number" id="f_hours" step="0.25" oninput="calc()"></div>
-        <div class="fg"><label>Crew Size</label><input type="number" id="f_crew" step="1" oninput="calc()"></div>
-        <div class="fg"><label>Crew Split</label><input type="text" id="f_crewsplit" placeholder="e.g. 4/2"></div>
+        <div class="fg"><label class="req">Start Time</label><input type="text" id="f_start" placeholder="9:00 AM"></div>
+        <div class="fg"><label class="req">End Time</label><input type="text" id="f_end" placeholder="11:30 AM"></div>
+        <div class="fg"><label class="req">Total Hours</label><input type="number" id="f_hours" step="0.25" oninput="calc()"></div>
+        <div class="fg"><label class="req">Crew Size</label><input type="number" id="f_crew" step="1" oninput="calc()"></div>
+        <div class="fg"><label>Crew Split</label><input type="text" id="f_crewsplit" placeholder="e.g. 4/2 (optional)"></div>
         <div class="fg"><label class="auto-lbl">↻ Man Hours</label><input type="number" id="f_manhrs" class="comp" step="0.25"></div>
-        <div class="fg"><label>Split Start</label><input type="text" id="f_sstart"></div>
-        <div class="fg"><label>Split End</label><input type="text" id="f_send"></div>
-        <div class="fg"><label>Split Hrs</label><input type="number" id="f_shrs" step="0.25" oninput="calc()"></div>
+        <div class="fg"><label>Split Start</label><input type="text" id="f_sstart" placeholder="optional"></div>
+        <div class="fg"><label>Split End</label><input type="text" id="f_send" placeholder="optional"></div>
+        <div class="fg"><label>Split Hrs</label><input type="number" id="f_shrs" step="0.25" oninput="calc()" placeholder="optional"></div>
       </div>
     </div>
 
@@ -750,14 +751,14 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
       <div class="fsec-hd">Revenue &amp; Cost</div>
       <div class="fgrid">
         <div class="fg">
-          <label>Job Type</label>
+          <label class="req">Job Type</label>
           <select id="f_type" onchange="calc()">
             <option value="Non-Crane">Non-Crane ($850/hr)</option>
             <option value="Crane">Crane ($1,250/hr)</option>
           </select>
         </div>
         <div class="fg"><label class="auto-lbl">↻ Target $/hr</label><input type="number" id="f_tgthr" class="comp" step="0.01"></div>
-        <div class="fg"><label>Job Cost ($)</label><input type="number" id="f_cost" step="0.01" oninput="calc()"></div>
+        <div class="fg"><label class="req">Job Cost ($)</label><input type="number" id="f_cost" step="0.01" oninput="calc()"></div>
         <div class="fg"><label class="auto-lbl">↻ Target Revenue</label><input type="number" id="f_tgtrev" class="comp" step="0.01"></div>
         <div class="fg"><label class="auto-lbl">↻ Actual $/hr</label><input type="number" id="f_acthr" class="comp" step="0.01" oninput="calc()"></div>
         <div class="fg"><label class="auto-lbl">↻ $/Man Hr</label><input type="number" id="f_manhr" class="comp" step="0.01"></div>
