@@ -1187,13 +1187,39 @@ function renderTable(){
 }
 
 // ── AUTO-CALC ─────────────────────────────────────────────────────────────────
+function parseTimeToMinutes(str) {
+  if (!str) return null;
+  const s = String(str).trim().toLowerCase();
+  // Matches: "9", "9:30", "9 am", "9:30pm"
+  const m = s.match(/^(\d{1,2})(?::(\d{1,2}))?\s*(am|pm)?$/);
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  let min = m[2] ? parseInt(m[2], 10) : 0;
+  if (isNaN(h) || isNaN(min)) return null;
+  const ap = m[3];
+  if (ap) {
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+  }
+  return h * 60 + min;
+}
+
 function calc(){
-  const hrs   = fv('f_hours');
+  let hrs   = fv('f_hours');
   const cr    = fv('f_crew');
   const shrs  = fv('f_shrs');   // split hours (used for Crew 2)
   const type  = g('f_type').value;
   const cost  = fv('f_cost');
   const ci    = crew; // current crew index
+
+  // If start/end times are provided, auto-calc total hours from them
+  const startMin = parseTimeToMinutes(gv('f_start'));
+  const endMin   = parseTimeToMinutes(gv('f_end'));
+  if (startMin != null && endMin != null && endMin > startMin) {
+    const diffHrs = (endMin - startMin) / 60;
+    hrs = diffHrs;
+    sv('f_hours', +diffHrs.toFixed(2));
+  }
 
   // Target $/hr based on job type
   const thr = type === 'Crane' ? 1250 : 850;
