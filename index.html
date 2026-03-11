@@ -195,7 +195,7 @@ header {
 
 /* ── STATS ── */
 .stats-row {
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(6, 1fr);
   border-bottom: 1px solid var(--border);
 }
 .stat {
@@ -221,6 +221,7 @@ header {
 .stat-num.bark   { color: var(--bark); }
 .stat-num.sage   { color: var(--moss); }
 .stat-num.red    { color: var(--red-warn); }
+.stat-num.forest-lt { color: var(--forest-lt); }
 .stat-bot {
   font-size: 11px; color: var(--text-sub);
   margin-top: 5px; font-family: 'JetBrains Mono', monospace;
@@ -237,6 +238,7 @@ header {
 .stat:nth-child(3)::after { background: var(--amber); }
 .stat:nth-child(4)::after { background: var(--red-warn); }
 .stat:nth-child(5)::after { background: var(--moss); }
+.stat:nth-child(6)::after { background: var(--forest-lt); }
 
 /* ── CHART ── */
 .chart-section {
@@ -632,6 +634,11 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
       <div class="stat-bot" id="s_avgcost">avg per job</div>
     </div>
     <div class="stat">
+      <div class="stat-top">Avg Revenue/Job</div>
+      <div class="stat-num forest-lt" id="s_avgrev">—</div>
+      <div class="stat-bot" id="s_avgrev_sub">revenue per job</div>
+    </div>
+    <div class="stat">
       <div class="stat-top">On / Under Target</div>
       <div class="stat-num sage" id="s_ontrack">—</div>
       <div class="stat-bot" id="s_avgou">avg over/under</div>
@@ -995,6 +1002,9 @@ function updateStats(){
   g('s_actdiff').textContent=(diff>=0?'+':'')+fm(diff)+' vs target';
   g('s_cost').textContent=fm(sumCost);
   g('s_avgcost').textContent=fm(sumCost/n)+' avg/job';
+  const avgRev = sumCost / n;
+  g('s_avgrev').textContent=fm(avgRev);
+  g('s_avgrev_sub').textContent='revenue per job';
   g('s_ontrack').textContent=onT+'/'+complete.length;
   g('s_avgou').textContent=(avgOU>=0?'+':'')+(avgOU*100).toFixed(1)+'% avg (complete jobs)';
 }
