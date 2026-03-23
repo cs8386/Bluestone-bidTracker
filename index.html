@@ -259,6 +259,38 @@ header {
 .leg-ln { width: 18px; height: 2.5px; border-radius: 2px; }
 .chart-canvas { height: 140px; min-height: 100px; position: relative; }
 
+/* ── WEEKLY TOTALS ── */
+.weekly-section {
+  padding: 14px 22px 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--cream) 0%, var(--parchment) 100%);
+}
+.weekly-hd {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--forest);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 10px;
+}
+.weekly-table-wrap { overflow-x: auto; }
+.weekly-tbl {
+  width: 100%; min-width: 280px; border-collapse: collapse;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+}
+.weekly-tbl th {
+  text-align: left; padding: 8px 12px;
+  background: var(--cream-dk); color: var(--text-sub);
+  font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 2px solid var(--border-dk);
+}
+.weekly-tbl td {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  color: var(--text-mid);
+}
+.weekly-tbl tbody tr:hover { background: rgba(30,58,47,0.03); }
+.weekly-tbl .col-crew1 { color: var(--moss); font-weight: 600; }
+.weekly-tbl .col-crew2 { color: var(--stone); font-weight: 600; }
+.weekly-tbl .col-total { color: var(--forest); font-weight: 700; }
+
 /* ── TOOLBAR ── */
 .toolbar {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -535,6 +567,9 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   .stats-row { grid-template-columns: 1fr; }
   .stat { padding: 14px 16px; }
   .stat-num { font-size: 22px; }
+  .weekly-section { padding: 12px 16px; }
+  .weekly-tbl { font-size: 11px; }
+  .weekly-tbl th, .weekly-tbl td { padding: 8px 10px; }
   .chart-section { padding: 14px 16px; }
   .chart-top { flex-direction: column; align-items: flex-start; gap: 8px; }
   .chart-canvas { height: 120px; }
@@ -642,6 +677,24 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
       <div class="stat-top">On / Under Target</div>
       <div class="stat-num sage" id="s_ontrack">—</div>
       <div class="stat-bot" id="s_avgou">avg over/under</div>
+    </div>
+  </div>
+
+  <!-- WEEKLY TOTALS -->
+  <div class="weekly-section">
+    <div class="weekly-hd">Weekly Revenue by Crew</div>
+    <div class="weekly-table-wrap">
+      <table class="weekly-tbl">
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Crew 1</th>
+            <th>Crew 2</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="weeklyBody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -816,6 +869,37 @@ let chartInst= null;
 let rowMap   = [{}, {}]; // maps job _idx to actual sheet row number
 
 // ── PARSE ─────────────────────────────────────────────────────────────────────
+function parseDateFromSheet(v) {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : v;
+  const n = parseFloat(v);
+  if (!isNaN(n) && n > 0) {
+    const d = new Date((n - 25569) * 86400 * 1000);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const s = String(v).trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    let y = parseInt(m[3], 10);
+    if (y < 100) y += 2000;
+    const d = new Date(y, parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+function getWeekKey(d) {
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  const day = copy.getDay();
+  const monOffset = day === 0 ? -6 : 1 - day;
+  copy.setDate(copy.getDate() + monOffset);
+  return copy.toISOString().slice(0, 10);
+}
+function formatWeekLabel(weekKey) {
+  const d = new Date(weekKey);
+  return 'Week of ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 function parseRow(raw, ci, ri) {
   if (!raw || !Array.isArray(raw)) return null;
   const flt = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
@@ -878,8 +962,11 @@ function parseRow(raw, ci, ri) {
     vsManHr = Math.abs(calc) > 20 ? 0 : calc;
   }
 
+  const dateVal = parseDateFromSheet(raw[0]);
   return {
     _idx: ri, _crew: ci,
+    date: dateVal,
+    dateStr: dateVal ? raw[0] : '',
     jobNum:    str(raw[1]),
     salesRep:  str(raw[2]).replace(/\s+/g,' '),
     client:    str(raw[3]),
@@ -971,7 +1058,41 @@ function switchCrew(ci){
   g('tab1').className='crew-tab'+(ci===1?' active':'');
   refresh();
 }
-function refresh(){ fillReps(); updateStats(); renderChart(); renderTable(); }
+function refresh(){ fillReps(); updateStats(); updateWeeklyTotals(); renderChart(); renderTable(); }
+
+// ── WEEKLY TOTALS ─────────────────────────────────────────────────────────────
+function updateWeeklyTotals() {
+  const rows = [];
+  const weekMap = {}; // weekKey -> { crew0: sum, crew1: sum }
+  for (let ci = 0; ci < 2; ci++) {
+    (allJobs[ci] || []).forEach(j => {
+      if (!j.date || !j.jobCost) return;
+      const wk = getWeekKey(j.date);
+      if (!weekMap[wk]) weekMap[wk] = { crew0: 0, crew1: 0 };
+      weekMap[wk]['crew' + ci] += j.jobCost;
+    });
+  }
+  const weeks = Object.keys(weekMap).sort().reverse();
+  weeks.forEach(wk => {
+    const o = weekMap[wk];
+    const total = o.crew0 + o.crew1;
+    rows.push({
+      weekKey: wk,
+      label: formatWeekLabel(wk),
+      crew0: o.crew0,
+      crew1: o.crew1,
+      total
+    });
+  });
+  g('weeklyBody').innerHTML = rows.length
+    ? rows.map(r => `<tr>
+      <td>${x(r.label)}</td>
+      <td class="col-crew1">${fm(r.crew0)}</td>
+      <td class="col-crew2">${fm(r.crew1)}</td>
+      <td class="col-total">${fm(r.total)}</td>
+    </tr>`).join('')
+    : '<tr><td colspan="4" style="color:var(--text-muted);padding:16px;text-align:center;">No dated jobs with revenue yet</td></tr>';
+}
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function updateStats(){
