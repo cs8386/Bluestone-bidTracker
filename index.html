@@ -941,7 +941,11 @@ function formatWeekLabel(weekKey) {
 }
 function parseRow(raw, ci, ri) {
   if (!raw || !Array.isArray(raw)) return null;
-  const flt = v => { const n = parseFloat(String(v||'').replace(/,/g,'')); return isNaN(n) ? 0 : n; };
+  const flt = v => {
+    const s = String(v ?? '').replace(/\u00a0/g, ' ').trim();
+    const n = parseFloat(s.replace(/[$,%]/g, '').replace(/,/g, ''));
+    return isNaN(n) ? 0 : n;
+  };
   const str = v => (v == null || v === '') ? '' : String(v).trim();
   const tim = v => {
     if (!v) return '';
@@ -1135,7 +1139,23 @@ function updateWeeklyTotals() {
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function updateStats(){
-  const jobs=allJobs[crew]; const n=jobs.length; if(!n) return;
+  const jobs=allJobs[crew]; const n=jobs.length;
+  if(!n){
+    g('s_total').textContent='—';
+    g('s_hrs').textContent='— total hrs';
+    g('s_tgthr').textContent='—';
+    g('s_tgtrev').textContent='— target rev';
+    g('s_acthr').textContent='—';
+    g('s_acthr').className='stat-num amber';
+    g('s_actdiff').textContent='vs target';
+    g('s_cost').textContent='—';
+    g('s_avgcost').textContent='avg per job';
+    g('s_avgrev').textContent='—';
+    g('s_avgrev_sub').textContent='revenue per job';
+    g('s_ontrack').textContent='—';
+    g('s_avgou').textContent='avg over/under';
+    return;
+  }
   const sumHrs=jobs.reduce((s,j)=>s+j.hours,0);
   const sumCost=jobs.reduce((s,j)=>s+j.jobCost,0);
   const sumTR=jobs.reduce((s,j)=>s+j.targetRev,0);
@@ -1518,8 +1538,12 @@ async function saveJob(){
 
 
   const ou=fv('f_ou'), vs=fv('f_vmhr');
+  const today = new Date();
+  const dateStrSave = (today.getMonth()+1) + '/' + today.getDate() + '/' + String(today.getFullYear()).slice(-2);
   const nj={
     _idx:editIdx!==null?editIdx:allJobs[crew].length, _crew:crew,
+    date: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0),
+    dateStr: dateStrSave,
     jobNum, salesRep:gv('f_rep'), client:gv('f_client'),
     startTime:gv('f_start'), endTime:gv('f_end'),
     hours:fv('f_hours'), crewSize:fv('f_crew'), crewSplit:gv('f_crewsplit'),
