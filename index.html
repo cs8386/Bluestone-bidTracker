@@ -626,7 +626,7 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
   <div class="header-right">
     <div class="sync-chip">
       <div class="led pulse" id="syncLed"></div>
-      <span id="syncText">Connecting…</span>
+      <span id="syncText">Loading…</span>
     </div>
     <button class="btn btn-outline-light btn-sm" onclick="loadBoth()">↻ Refresh</button>
     <button class="btn btn-green btn-sm" onclick="openModal()">＋ Add Job</button>
@@ -1038,23 +1038,58 @@ function parseRow(raw, ci, ri) {
 }
 
 // ── FETCH ─────────────────────────────────────────────────────────────────────
-const FETCH_TIMEOUT = 8000;
+const FETCH_TIMEOUT = 20000;
+
+function formatSheetLoadError(e) {
+  if (e && e.name === 'AbortError') {
+    return 'Request timed out after ' + (FETCH_TIMEOUT / 1000) + 's. Check your connection and try Refresh.';
+  }
+  var msg = (e && e.message) ? e.message : 'Sheets unavailable';
+  if (/referer|referrer|API_KEY_HTTP|PERMISSION_DENIED/i.test(msg)) {
+    msg += ' — In Google Cloud Console → APIs & Services → Credentials → your API key → Application restrictions: add HTTP referrer '
+      + (location.origin ? location.origin + '/*' : '(your GitHub Pages URL, e.g. https://YOURNAME.github.io/*)');
+    msg += ' File URLs (opening index.html from disk) usually need a separate key with no referrer restriction for testing.';
+  }
+  return msg;
+}
+
+function showLoadFailure(e) {
+  var msg = formatSheetLoadError(e);
+  setLed('dead', 'Offline');
+  g('stateBox').innerHTML = '<p>' + x(msg) + '</p><button class="btn btn-outline btn-sm" onclick="loadBoth()" style="margin-top:12px">↻ Retry</button>';
+  g('stateBox').style.display = 'flex';
+  g('tblWrap').style.display = 'none';
+  g('emptyBox').style.display = 'none';
+  g('jobCards').innerHTML = '';
+  g('tblScroll').classList.remove('has-cards');
+  toast(msg, 'err');
+}
 
 async function fetchCrew(ci) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(TABS[ci]+'!A:Y')}?key=${API_KEY}&valueRenderOption=FORMATTED_VALUE`;
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT);
-  const res = await fetch(url, { signal: ctrl.signal });
-  clearTimeout(t);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
+  const t = setTimeout(function () { ctrl.abort(); }, FETCH_TIMEOUT);
+  var res;
+  try {
+    res = await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+  var text = await res.text();
+  var data;
+  try {
+    data = JSON.parse(text);
+  } catch (parseErr) {
+    throw new Error('Invalid response from Google (not JSON). HTTP ' + res.status + '. Check API key and network.');
+  }
+  if (data.error) throw new Error(data.error.message || 'Google Sheets API error');
   const rows = data.values || [];
-  rowMap[ci] = {}; // idx -> sheet row number (1-based, row 1 = header)
+  rowMap[ci] = {};
   const jobs = [];
-  rows.slice(1).forEach((r, i) => {
+  rows.slice(1).forEach(function (r, i) {
     const j = parseRow(r, ci, i);
     if (j && j.jobNum !== '') {
-      rowMap[ci][i] = i + 2; // +2 because slice(1) and 1-based + header row
+      rowMap[ci][i] = i + 2;
       jobs.push(j);
     }
   });
@@ -1062,24 +1097,27 @@ async function fetchCrew(ci) {
 }
 
 async function loadBoth() {
-  setLed('pulse','Loading…'); showState('loading');
+  setLed('pulse', 'Loading…');
+  showState('loading');
   g('stateBox').innerHTML = '<div class="spinner"></div><p>Loading from Google Sheets…</p>';
   try {
-    const [c1,c2] = await Promise.all([fetchCrew(0),fetchCrew(1)]);
-    allJobs[0]=c1; allJobs[1]=c2;
-    g('cnt0').textContent=c1.length; g('cnt1').textContent=c2.length;
-    setLed('ok',`Synced · ${c1.length+c2.length} jobs`);
-    refresh();
-    toast(`Crew 1: ${c1.length} · Crew 2: ${c2.length} jobs from Sheets`,'ok');
-  } catch(e) {
-    setLed('dead','Offline');
-    g('stateBox').innerHTML = `<p>${x(e.message || 'Sheets unavailable')}</p><button class="btn btn-outline btn-sm" onclick="loadBoth()" style="margin-top:12px">↻ Retry</button>`;
-    g('stateBox').style.display = 'flex';
-    g('tblWrap').style.display = 'none';
-    g('emptyBox').style.display = 'none';
-    g('jobCards').innerHTML = '';
-    g('tblScroll').classList.remove('has-cards');
-    toast(e.message || 'Could not load from Sheets','err');
+    const c1c2 = await Promise.all([fetchCrew(0), fetchCrew(1)]);
+    const c1 = c1c2[0], c2 = c1c2[1];
+    allJobs[0] = c1;
+    allJobs[1] = c2;
+    g('cnt0').textContent = c1.length;
+    g('cnt1').textContent = c2.length;
+    setLed('ok', 'Synced · ' + (c1.length + c2.length) + ' jobs');
+    try {
+      refresh();
+    } catch (rend) {
+      console.error(rend);
+      showLoadFailure(rend);
+      return;
+    }
+    toast('Crew 1: ' + c1.length + ' · Crew 2: ' + c2.length + ' jobs from Sheets', 'ok');
+  } catch (e) {
+    showLoadFailure(e);
   }
 }
 
@@ -1230,7 +1268,7 @@ function renderChart(){
 
 // ── TABLE ─────────────────────────────────────────────────────────────────────
 function fillReps(){
-  const reps=[...new Set(allJobs[crew].map(j=>j.salesRep.trim()).filter(Boolean))].sort();
+  const reps=[...new Set(allJobs[crew].map(j=>(j.salesRep||'').trim()).filter(Boolean))].sort();
   g('repFilter').innerHTML='<option value="">All Reps</option>'+reps.map(r=>`<option>${x(r)}</option>`).join('');
 }
 
@@ -1617,7 +1655,12 @@ function toast(msg,type){
 g('overlay').addEventListener('click',e=>{if(e.target===g('overlay'))closeModal();});
 let _resizeT;
 window.addEventListener('resize',()=>{ clearTimeout(_resizeT); _resizeT=setTimeout(()=>{ if(g('stateBox').style.display!=='flex') renderTable(); }, 150); });
-try { loadBoth(); } catch (err) { setLed('dead','Error'); toast('Error: ' + (err.message || 'unknown'),'err'); }
+try {
+  loadBoth().catch(function (err) { showLoadFailure(err); });
+} catch (err) {
+  setLed('dead', 'Error');
+  toast('Error: ' + (err.message || 'unknown'), 'err');
+}
 </script>
 </body>
 </html>
