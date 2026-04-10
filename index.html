@@ -850,14 +850,12 @@ td.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
 </div>
 
 <script>
-// ── CONFIG (restrict API key in Google Cloud Console: APIs & Services → Credentials → API key → Application restrictions) ──
+// ── CONFIG: loads use APPS_SCRIPT only (no Sheets API key in the browser). Redeploy Code.gs after edits. ──
 const CONFIG = {
-  API_KEY:     'AIzaSyByq_vZuqElcdOzh9ed0ASNIF8ZPfiY_-k',
   SHEET_ID:    '1MChs7gIQveiooe9NKxHqJRqYYHO1mmzLb1ZdMjZT2bc',
   TABS:        ['Crew 1 Bid Tracking', 'Crew 2 Bid Tracking'],
   APPS_SCRIPT: 'https://script.google.com/macros/s/AKfycbxpaWnZbtXq-BmWdTyzNzMkflqor7SP-sVIoR7HoPiepACwv7YL-7UufgGGuTFr-3iewQ/exec'
 };
-const API_KEY     = CONFIG.API_KEY;
 const SHEET_ID    = CONFIG.SHEET_ID;
 const TABS        = CONFIG.TABS;
 const APPS_SCRIPT = CONFIG.APPS_SCRIPT;
@@ -1045,10 +1043,8 @@ function formatSheetLoadError(e) {
     return 'Request timed out after ' + (FETCH_TIMEOUT / 1000) + 's. Check your connection and try Refresh.';
   }
   var msg = (e && e.message) ? e.message : 'Sheets unavailable';
-  if (/referer|referrer|API_KEY_HTTP|PERMISSION_DENIED/i.test(msg)) {
-    msg += ' — In Google Cloud Console → APIs & Services → Credentials → your API key → Application restrictions: add HTTP referrer '
-      + (location.origin ? location.origin + '/*' : '(your GitHub Pages URL, e.g. https://YOURNAME.github.io/*)');
-    msg += ' File URLs (opening index.html from disk) usually need a separate key with no referrer restriction for testing.';
+  if (/readRange|timed out|Apps Script/i.test(msg)) {
+    msg += ' — Open the sheet → Extensions → Apps Script, paste the latest Code.gs, Deploy → Manage deployments → Edit → New version → Deploy.';
   }
   return msg;
 }
@@ -1065,25 +1061,20 @@ function showLoadFailure(e) {
   toast(msg, 'err');
 }
 
+function fetchCrewViaAppsScript(ci) {
+  return Promise.race([
+    callScript({ sheetId: SHEET_ID, action: 'readRange', tab: TABS[ci] }),
+    new Promise(function (_, rej) {
+      setTimeout(function () {
+        rej(new Error('Apps Script read timed out (' + (FETCH_TIMEOUT / 1000) + 's).'));
+      }, FETCH_TIMEOUT);
+    })
+  ]);
+}
+
 async function fetchCrew(ci) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(TABS[ci]+'!A:Y')}?key=${API_KEY}&valueRenderOption=FORMATTED_VALUE`;
-  const ctrl = new AbortController();
-  const t = setTimeout(function () { ctrl.abort(); }, FETCH_TIMEOUT);
-  var res;
-  try {
-    res = await fetch(url, { signal: ctrl.signal });
-  } finally {
-    clearTimeout(t);
-  }
-  var text = await res.text();
-  var data;
-  try {
-    data = JSON.parse(text);
-  } catch (parseErr) {
-    throw new Error('Invalid response from Google (not JSON). HTTP ' + res.status + '. Check API key and network.');
-  }
-  if (data.error) throw new Error(data.error.message || 'Google Sheets API error');
-  const rows = data.values || [];
+  var body = await fetchCrewViaAppsScript(ci);
+  var rows = (body && body.values) ? body.values : [];
   rowMap[ci] = {};
   const jobs = [];
   rows.slice(1).forEach(function (r, i) {
