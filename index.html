@@ -1067,13 +1067,19 @@ function fetchCrewViaAppsScript(ci) {
   return callScript({ sheetId: SHEET_ID, action: 'readRange', tab: TABS[ci] }, FETCH_TIMEOUT);
 }
 
+function padRowToY(r) {
+  const row = Array.isArray(r) ? r.slice() : [];
+  while (row.length < 25) row.push('');
+  return row;
+}
+
 async function fetchCrew(ci) {
   var body = await fetchCrewViaAppsScript(ci);
   var rows = (body && body.values) ? body.values : [];
   rowMap[ci] = {};
   const jobs = [];
   rows.slice(1).forEach(function (r, i) {
-    const j = parseRow(r, ci, i);
+    const j = parseRow(padRowToY(r), ci, i);
     if (j && j.jobNum !== '') {
       rowMap[ci][i] = i + 2;
       jobs.push(j);
@@ -1523,7 +1529,8 @@ function jobToRow(nj) {
 
 function callScript(payload, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const cb = '_bluestone_' + Date.now();
+    // Must be unique: Promise.all runs two reads in the same ms; Date.now() alone collides.
+    const cb = '_bs_' + Date.now() + '_' + Math.random().toString(36).slice(2, 11);
     let script = document.createElement('script');
     let settled = false;
     function done(err, result) {
