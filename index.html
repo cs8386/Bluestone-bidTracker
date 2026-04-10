@@ -924,13 +924,15 @@ function parseDateFromSheet(v) {
   const result = new Date(y, m, day, 12, 0, 0);
   return isNaN(result.getTime()) ? null : result;
 }
-function getWeekKey(d) {
-  const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const day = copy.getDay();
-  const monOffset = day === 0 ? -6 : 1 - day;
+function getWeekKey(dateIn) {
+  const copy = new Date(dateIn.getFullYear(), dateIn.getMonth(), dateIn.getDate());
+  const dow = copy.getDay();
+  const monOffset = dow === 0 ? -6 : 1 - dow;
   copy.setDate(copy.getDate() + monOffset);
-  const y = copy.getFullYear(), m = String(copy.getMonth() + 1).padStart(2, '0'), d = String(copy.getDate()).padStart(2, '0');
-  return y + '-' + m + '-' + d;
+  const y = copy.getFullYear();
+  const mo = String(copy.getMonth() + 1).padStart(2, '0');
+  const dd = String(copy.getDate()).padStart(2, '0');
+  return y + '-' + mo + '-' + dd;
 }
 function formatWeekLabel(weekKey) {
   const [y, mo, day] = weekKey.split('-').map(Number);
@@ -1062,14 +1064,7 @@ function showLoadFailure(e) {
 }
 
 function fetchCrewViaAppsScript(ci) {
-  return Promise.race([
-    callScript({ sheetId: SHEET_ID, action: 'readRange', tab: TABS[ci] }),
-    new Promise(function (_, rej) {
-      setTimeout(function () {
-        rej(new Error('Apps Script read timed out (' + (FETCH_TIMEOUT / 1000) + 's).'));
-      }, FETCH_TIMEOUT);
-    })
-  ]);
+  return callScript({ sheetId: SHEET_ID, action: 'readRange', tab: TABS[ci] }, FETCH_TIMEOUT);
 }
 
 async function fetchCrew(ci) {
@@ -1526,24 +1521,33 @@ function jobToRow(nj) {
   ];
 }
 
-function callScript(payload) {
+function callScript(payload, timeoutMs) {
   return new Promise((resolve, reject) => {
     const cb = '_bluestone_' + Date.now();
-    window[cb] = (body) => {
-      delete window[cb];
-      script.parentNode?.removeChild(script);
-      if (body.error) reject(new Error(body.error));
-      else if (body.success === false) reject(new Error(body.message || 'Operation failed'));
-      else resolve(body);
+    let script = document.createElement('script');
+    let settled = false;
+    function done(err, result) {
+      if (settled) return;
+      settled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      window[cb] = function () {}; // absorb late JSONP after timeout/error
+      try { script.parentNode && script.parentNode.removeChild(script); } catch (e) {}
+      if (err) reject(err);
+      else resolve(result);
+    }
+    const timeoutId = timeoutMs ? setTimeout(function () {
+      done(new Error('Apps Script timed out (' + (timeoutMs / 1000) + 's). Redeploy Code.gs with readRange or check the script URL.'));
+    }, timeoutMs) : 0;
+    window[cb] = function (body) {
+      if (body && body.error) done(new Error(typeof body.error === 'string' ? body.error : JSON.stringify(body.error)));
+      else if (body && body.success === false) done(new Error(body.message || 'Operation failed'));
+      else done(null, body);
     };
     const data = encodeURIComponent(JSON.stringify(payload));
     const sep = APPS_SCRIPT.indexOf('?') >= 0 ? '&' : '?';
-    const script = document.createElement('script');
     script.src = APPS_SCRIPT + sep + 'data=' + data + '&callback=' + cb;
-    script.onerror = () => {
-      delete window[cb];
-      script.parentNode?.removeChild(script);
-      reject(new Error('Request failed. Check Apps Script URL and authorization.'));
+    script.onerror = function () {
+      done(new Error('Request failed. Check Apps Script URL and authorization.'));
     };
     document.head.appendChild(script);
   });
